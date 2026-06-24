@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>任务冰箱</title>
     <style>
         :root {
@@ -21,35 +21,62 @@
             background-color: #fdfdfd;
             color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        h1 { color: var(--text-main); font-weight: 400; margin-bottom: 5px; font-size: 24px; }
-        .sub-title { color: var(--text-muted); font-size: 13px; margin-bottom: 25px; }
+        h1 { color: var(--text-main); font-weight: 400; margin-bottom: 5px; font-size: 22px; text-align: center; }
+        .sub-title { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; text-align: center; line-height: 1.4; }
 
-        .controls { margin-bottom: 25px; }
+        .controls { 
+            margin-bottom: 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 420px;
+        }
 
         .btn {
             background-color: var(--btn-bg);
             color: white;
             border: 1px solid var(--btn-bg);
-            padding: 8px 18px;
+            padding: 10px 18px;
             font-size: 14px;
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.15s ease;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
         }
         .btn:hover { background-color: #212529; border-color: #212529; }
+
+        .debug-label {
+            font-size: 11px; 
+            color: var(--text-muted); 
+            background: #f1f3f5; 
+            padding: 6px 12px; 
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
 
         /* 主布局 */
         .workspace {
             display: flex;
-            gap: 30px;
-            width: 95%;
+            flex-direction: column; /* 默认手机端上下堆叠 */
+            gap: 25px;
+            width: 100%;
             max-width: 1100px;
+            box-sizing: border-box;
         }
 
         .left-column {
@@ -57,36 +84,40 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* 拟物化极简冰箱外壳 */
         .fridge-container {
             position: relative;
-            padding-right: 10px; /* 为侧边把手留出空间 */
+            padding-right: 10px; 
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .fridge {
-            height: 540px;
+            height: 500px;
             background-color: var(--fridge-bg);
-            /* 模拟双层保温冰箱外壳线条 */
-            border: 12px solid var(--fridge-shell);
-            border-top-width: 18px;
-            border-bottom-width: 18px;
+            border: 10px solid var(--fridge-shell);
+            border-top-width: 15px;
+            border-bottom-width: 15px;
             border-radius: 12px;
             position: relative;
             display: flex;
             flex-direction: column;
             box-shadow: 0 4px 20px rgba(0,0,0,0.04), inset 0 0 15px rgba(0,0,0,0.02);
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         /* 极简冰箱把手 */
         .fridge-handle {
             position: absolute;
             right: 0;
-            top: 140px;
+            top: 130px;
             width: 8px;
-            height: 140px;
+            height: 120px;
             background: #adb5bd;
             border-radius: 0 4px 4px 0;
             box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
@@ -95,27 +126,28 @@
         /* 晶莹玻璃搁板层 */
         .fridge-layer {
             flex: 1;
-            /* 模拟高档加厚分层玻璃横梁 */
             border-bottom: 5px solid #dee2e6;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding: 10px 15px;
-            gap: 22px;
+            padding: 10px 12px;
+            gap: 15px;
             position: relative;
             background-color: var(--layer-bg);
             box-shadow: inset 0 -3px 3px -3px rgba(0,0,0,0.05);
             transition: background-color 0.2s;
+            overflow-x: auto; /* 任务太多时允许横向滑动 */
         }
         .fridge-layer:last-child { border-bottom: none; }
         .fridge-layer.drag-over { background-color: #f8f9fa; }
 
         .layer-badge {
-            position: absolute; right: 12px; top: 6px;
-            font-size: 10px; color: var(--text-muted); 
-            border: 1px solid var(--border-light); padding: 1px 5px; border-radius: 3px;
+            position: absolute; right: 8px; top: 4px;
+            font-size: 9px; color: var(--text-muted); 
+            border: 1px solid var(--border-light); padding: 1px 4px; border-radius: 3px;
             pointer-events: none; background: rgba(255,255,255,0.9);
             z-index: 2;
+            white-space: nowrap;
         }
 
         /* 今日已饱食空盘区 */
@@ -125,6 +157,7 @@
             border-radius: 8px;
             padding: 15px;
             min-height: 80px;
+            box-sizing: border-box;
         }
         .empty-plates-container h4 { margin: 0 0 10px 0; font-weight: 500; font-size: 14px; color: var(--text-main); }
         .plates-shelf { display: flex; flex-wrap: wrap; gap: 12px; }
@@ -137,18 +170,19 @@
             align-items: center; 
             position: relative;
             transition: transform 0.15s ease;
+            flex-shrink: 0;
         }
-        .food-icon { font-size: 36px; cursor: grab; transition: transform 0.15s; user-select: none; }
+        .food-icon { font-size: 34px; cursor: grab; transition: transform 0.15s; user-select: none; }
         .food-icon:active { cursor: grabbing; }
-        .food-icon:hover { transform: scale(1.1); }
         
         .food-container[data-status="running"] .food-icon { animation: breathe 2s infinite alternate; }
         .food-container[data-status="paused"] { filter: grayscale(0.5) opacity(0.6); }
 
         .food-timer-tag {
             font-size: 9px; background: #f1f3f5; color: var(--text-main);
-            padding: 1px 4px; border-radius: 3px; margin-top: 3px; font-family: monospace;
+            padding: 1px 3px; border-radius: 3px; margin-top: 3px; font-family: monospace;
             border: 1px solid #dee2e6;
+            white-space: nowrap;
         }
 
         @keyframes breathe {
@@ -158,42 +192,52 @@
 
         /* 右侧文字清单 */
         .text-list-container {
-            width: 420px; background: white; border-radius: 8px;
+            width: 100%; 
+            background: white; 
+            border-radius: 8px;
             border: 1px solid var(--fridge-border);
-            padding: 20px; display: flex; flex-direction: column; height: 645px;
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            height: 450px;
+            box-sizing: border-box;
         }
-        .text-list-container h3 { font-weight: 500; font-size: 16px; margin-top: 0; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
+        .text-list-container h3 { font-weight: 500; font-size: 15px; margin-top: 0; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
         .task-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
         
         .task-item {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 12px; margin-bottom: 10px; background: #ffffff;
+            padding: 10px; margin-bottom: 8px; background: #ffffff;
             border-radius: 4px; border: 1px solid var(--border-light); transition: all 0.2s ease;
+            gap: 10px;
         }
         .task-item[data-status="running"] { border-left: 3px solid #495057; background: #fdfdfd; }
         .task-item[data-status="paused"] { background: #f8f9fa; color: var(--text-muted); }
 
-        .task-info { display: flex; align-items: center; gap: 10px; }
-        .task-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        .task-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        .task-info div { min-width: 0; overflow: hidden; }
+        .task-name-text { font-weight: 400; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .task-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
         
         .btn-sm {
-            border: 1px solid #ced4da; padding: 4px 8px; border-radius: 3px;
+            border: 1px solid #ced4da; padding: 5px 8px; border-radius: 3px;
             font-size: 12px; cursor: pointer; color: var(--text-main); background: #ffffff;
+            white-space: nowrap;
         }
         .btn-sm:hover { background: #f1f3f5; }
         .btn-start { background: #ffffff; border-color: #adb5bd; }
-        .btn-pause { background: #ffffff; }
         .btn-finish { background: var(--btn-bg); color: #fff; border-color: var(--btn-bg); }
         .btn-reheat { background: #ffffff; border-color: #495057; font-weight: bold; }
 
-        .live-timer { font-family: monospace; font-size: 12px; color: var(--text-main); }
+        .live-timer { font-family: monospace; font-size: 11px; color: var(--text-main); }
 
         /* 遮罩图层 */
         .fridge-door, .microwave-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center;
             align-items: center; z-index: 10; text-align: center;
-            padding: 20px; box-sizing: border-box;
+            padding: 15px; box-sizing: border-box;
             opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
             background: rgba(255, 255, 255, 0.96); color: var(--text-main);
         }
@@ -202,27 +246,43 @@
 
         .anchor-memo-box {
             background: #f8f9fa; border: 1px solid #ced4da;
-            padding: 12px; border-radius: 4px; max-width: 80%; margin-top: 15px;
-            color: var(--text-main); font-size: 14px;
+            padding: 10px; border-radius: 4px; max-width: 90%; margin-top: 12px;
+            color: var(--text-main); font-size: 13px;
         }
 
         /* 弹窗核心样式 */
         .modal-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.3); display: none;
+            background: rgba(0,0,0,0.4); display: none;
             justify-content: center; align-items: center; z-index: 100;
+            padding: 15px; box-sizing: border-box;
         }
-        .modal { background: white; padding: 25px; border-radius: 6px; width: 360px; border: 1px solid var(--fridge-border); }
+        .modal { background: white; padding: 20px; border-radius: 6px; width: 100%; max-width: 360px; border: 1px solid var(--fridge-border); box-sizing: border-box;}
         .modal h3 { margin-top: 0; font-weight: 500; font-size: 16px; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 8px;}
-        .form-group { margin-bottom: 18px; }
+        .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-main);}
-        .form-group input[type="text"] { width: 93%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;}
+        .form-group input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;}
         .form-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #495057;}
         
         .alex-text-desc {
             background: #f8f9fa; border-left: 2px solid #6c757d;
             padding: 8px; border-radius: 3px; font-size: 12px;
             color: var(--text-main); margin-top: 4px; min-height: 16px;
+        }
+
+        /* 💻 当屏幕宽度大于 800 像素时（电脑端），自动切换为优雅的左右双栏布局 */
+        @media (min-width: 800px) {
+            body { padding: 20px; }
+            h1 { font-size: 24px; }
+            .controls { flex-direction: row; max-width: none; justify-content: center; }
+            .btn { width: auto; }
+            .debug-label { width: auto; }
+            .workspace { flex-direction: row; gap: 30px; }
+            .fridge { height: 540px; }
+            .fridge-handle { height: 140px; top: 140px; }
+            .text-list-container { width: 420px; height: 645px; padding: 20px; }
+            .task-item { padding: 12px; }
+            .task-name-text { font-size: 14px; white-space: normal; overflow: visible; }
         }
     </style>
 </head>
@@ -233,7 +293,7 @@
     
     <div class="controls">
         <button class="btn" onclick="openAddTaskModal()">+ 放入新食物（创建任务）</button>
-        <label style="margin-left: 20px; font-size: 12px; color: var(--text-muted); background:#f1f3f5; padding:5px 10px; border-radius:4px;">
+        <label class="debug-label">
             <input type="checkbox" id="testMode" checked> 💡 开启加速调试模式（1小时压缩为5秒）
         </label>
     </div>
@@ -242,37 +302,41 @@
         <div class="left-column">
             <div class="fridge-container">
                 <div class="fridge" id="fridge">
+                    <!-- 遮罩1：冰箱门 -->
                     <div class="fridge-door" id="fridgeDoor">
-                        <h3 style="font-size:18px; margin-bottom:5px;">静心准备中</h3>
-                        <p style="max-width:80%; font-size:13px; color:var(--text-muted);">闭合外界干扰，调顺呼吸，准备好后进入专注状态...</p>
-                        <div style="font-size: 44px; font-weight: 300; margin-top:10px;" id="meditationCountdown">30s</div>
+                        <h3 style="font-size:16px; margin-bottom:5px;">静心准备中</h3>
+                        <p style="max-width:90%; font-size:12px; color:var(--text-muted);">闭合外界干扰，调顺呼吸，准备好后进入专注状态...</p>
+                        <div style="font-size: 36px; font-weight: 300; margin-top:10px;" id="meditationCountdown">30s</div>
                     </div>
 
+                    <!-- 遮罩2：微波炉 -->
                     <div class="microwave-screen" id="microwaveScreen">
-                        <h3 style="font-size:18px; margin-bottom:5px;">正在重温接轨思维进度...</h3>
-                        <p style="font-size:12px; color:var(--text-muted);">正在无缝同步上次的断点，请看提示：</p>
+                        <h3 style="font-size:16px; margin-bottom:5px;">正在重温接轨思维进度...</h3>
+                        <p style="font-size:11px; color:var(--text-muted);">正在无缝同步上次的断点，请看提示：</p>
                         <div class="anchor-memo-box">
                             📍 <b>断点留存：</b><span id="anchorDisplay">加载中...</span>
                         </div>
-                        <div style="font-size: 36px; font-weight: 300; margin-top:10px;" id="reheatCountdown">5s</div>
+                        <div style="font-size: 32px; font-weight: 300; margin-top:10px;" id="reheatCountdown">5s</div>
                     </div>
 
+                    <!-- 四层晶莹搁板 -->
                     <div class="fridge-layer" data-layer="1" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">第一层：顶层冷冻 [优先极高]</span>
+                        <span class="layer-badge">一层: 顶层冷冻 [优先极高]</span>
                     </div>
                     <div class="fridge-layer" data-layer="2" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">第二层：上层冷藏 [核心推进]</span>
+                        <span class="layer-badge">二层: 上层冷藏 [核心推进]</span>
                     </div>
                     <div class="fridge-layer" data-layer="3" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">第三层：下层冷藏 [缓步处理]</span>
+                        <span class="layer-badge">三层: 下层冷藏 [缓步处理]</span>
                     </div>
                     <div class="fridge-layer" data-layer="4" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">第四层：底层保鲜 [低能挂机]</span>
+                        <span class="layer-badge">四层: 底层保鲜 [低能挂机]</span>
                     </div>
                 </div>
                 <div class="fridge-handle"></div>
             </div>
 
+            <!-- 今日已饱食空盘区 -->
             <div class="empty-plates-container">
                 <h4>🍽️ 今日已饱食空盘区</h4>
                 <div class="plates-shelf" id="platesShelf">
@@ -281,12 +345,14 @@
             </div>
         </div>
 
+        <!-- 清单 -->
         <div class="text-list-container">
-            <h3>📋 任务文字清单 <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(已严格同步冰箱内部空间排序)</span></h3>
+            <h3>📋 任务文字清单 <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(已同步冰箱空间排序)</span></h3>
             <ul class="task-list" id="taskList"></ul>
         </div>
     </div>
 
+    <!-- 弹窗群 -->
     <div class="modal-overlay" id="taskModal">
         <div class="modal">
             <h3>🍎 拟定新的食物任务</h3>
@@ -305,8 +371,8 @@
                 <div class="range-value" style="text-align:right; font-size:11px; color:var(--text-muted);">当前: <span>0</span>分</div>
             </div>
             <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:10px;">
-                <button class="btn" style="background-color:#fff; color:var(--text-main); border-color:#ced4da;" onclick="closeModal('taskModal')">取消</button>
-                <button class="btn" onclick="submitTask()">确认放入</button>
+                <button class="btn" style="background-color:#fff; color:var(--text-main); border-color:#ced4da; width:auto;" onclick="closeModal('taskModal')">取消</button>
+                <button class="btn" style="width:auto;" onclick="submitTask()">确认放入</button>
             </div>
         </div>
     </div>
@@ -320,7 +386,7 @@
                 <input type="text" id="anchorInput" placeholder="例如：刚查到第3页，待会复制表格..." autofocus>
             </div>
             <div class="modal-actions" style="display:flex; justify-content:flex-end;">
-                <button class="btn" onclick="submitAnchor()">锁死断点并暂停</button>
+                <button class="btn" style="width:auto;" onclick="submitAnchor()">锁死断点并暂停</button>
             </div>
         </div>
     </div>
@@ -340,7 +406,7 @@
                 <div class="alex-text-desc" id="happinessDesc">⛅ 无功无过</div>
             </div>
             <div class="modal-actions" style="display:flex; justify-content:flex-end;">
-                <button class="btn" onclick="submitEmotion()">提交复盘</button>
+                <button class="btn" style="width:auto;" onclick="submitEmotion()">提交复盘</button>
             </div>
         </div>
     </div>
@@ -350,7 +416,7 @@
             <h3>🧘‍♀️ 状态调适建议</h3>
             <p id="meditationReason" style="font-size: 13px; font-weight: bold; color: #212529;"></p>
             <p style="font-size: 13px; color: var(--text-muted);">系统检测到您的能效状态处于极值区间。建议暂时放下工作，进行 5分钟 短休调适。</p>
-            <button class="btn" onclick="closeModal('deepMeditationModal')">收到</button>
+            <button class="btn" style="width:auto; margin:0 auto;" onclick="closeModal('deepMeditationModal')">收到</button>
         </div>
     </div>
 
@@ -369,8 +435,8 @@
     <div class="modal-overlay" id="timeoutModal">
         <div class="modal" style="text-align: center;">
             <h3 id="timeoutTitle">⏰ 冰箱内务整理提示</h3>
-            <p id="timeoutContent" style="font-size:14px; color:var(--text-main); padding: 10px 0; line-height: 1.4;"></p>
-            <button class="btn" onclick="closeModal('timeoutModal')">明确，去处理</button>
+            <p id="timeoutContent" style="font-size:13px; color:var(--text-main); padding: 10px 0; line-height: 1.4; text-align: left;"></p>
+            <button class="btn" style="width:auto; margin:0 auto;" onclick="closeModal('timeoutModal')">明确，去处理</button>
         </div>
     </div>
 
@@ -429,13 +495,11 @@
             });
 
             closeModal('taskModal');
-            // 新任务默认排在对应层级的末尾，触发一次全局排序维护
             reorderTasksByFridgeLayout();
             startGlobalTimer(); 
             render();
         }
 
-        // 拖拽事件控制
         function allowDrop(ev) { 
             ev.preventDefault(); 
             let target = ev.target;
@@ -457,7 +521,6 @@
             ev.dataTransfer.setData("text/plain", id); 
         }
 
-        // 核心改动：横向坐标感知的精准放置与重组
         function drop(ev) {
             ev.preventDefault();
             const id = ev.dataTransfer.getData("text/plain");
@@ -472,11 +535,8 @@
             targetLayerEl.classList.remove('drag-over');
             
             const targetLayerNum = parseInt(targetLayerEl.getAttribute('data-layer'));
-
-            // 抓取该层级内所有除了当前被拖拽物品以外的图标DOM元素
             const currentLayerItems = [...targetLayerEl.querySelectorAll('.food-container')].filter(el => el.getAttribute('data-id') !== id);
             
-            // 依据鼠标的 clientX 判断应该插入在哪个图标之前（实现同层左右排序）
             let insertIndex = currentLayerItems.length;
             for (let i = 0; i < currentLayerItems.length; i++) {
                 const box = currentLayerItems[i].getBoundingClientRect();
@@ -486,16 +546,12 @@
                 }
             }
 
-            // 从底层全局数据集中临时抽出该任务并变更层级
             tasks = tasks.filter(t => t.id !== id);
             task.layer = targetLayerNum;
 
-            // 获取目标层级里现存的未完成数据
             let targetLayerTasks = tasks.filter(t => t.layer === targetLayerNum && t.status !== 'finished');
-            // 将拖拽的任务插入到计算出的精准位置
             targetLayerTasks.splice(insertIndex, 0, task);
 
-            // 重新按“层数从1到4”拼装整个全局任务链
             let finalTasks = [];
             for (let l = 1; l <= 4; l++) {
                 if (l === targetLayerNum) {
@@ -504,14 +560,12 @@
                     finalTasks.push(...tasks.filter(t => t.layer === l && t.status !== 'finished'));
                 }
             }
-            // 拼接已完成的数据项
             finalTasks.push(...tasks.filter(t => t.status === 'finished'));
             tasks = finalTasks;
 
             render();
         }
 
-        // 初始化或加入新任务时的基础保底空间层级排序排序
         function reorderTasksByFridgeLayout() {
             let ordered = [];
             for(let l = 1; l <= 4; l++) {
@@ -706,29 +760,23 @@
             shelf.appendChild(plate);
         }
 
-        // 渲染核心：完全复用全局任务集被精准重组后的数组序列
         function render() {
-            // 清理左边货架
             document.querySelectorAll('.fridge-layer').forEach(layer => {
                 const badge = layer.querySelector('.layer-badge');
                 layer.innerHTML = '';
                 layer.appendChild(badge);
             });
 
-            // 清理右边清单DOM
             const taskListEl = document.getElementById('taskList');
             taskListEl.innerHTML = '';
 
-            // 遍历渲染：因为全局 tasks 数组已经在 drop 事件中排好了“从上到下、由左至右”的结构
-            // 所以直接顺向循环生成 DOM，左右两侧的物理空间表现与文字清单完全100%映射
             tasks.forEach(task => {
                 if (task.status === 'finished') return;
 
-                // 1. 渲染左侧冰箱内的图形食物
                 const foodContainer = document.createElement('div');
                 foodContainer.className = 'food-container';
                 foodContainer.setAttribute('data-status', task.status);
-                foodContainer.setAttribute('data-id', task.id); // 用于坐标捕捉辨识
+                foodContainer.setAttribute('data-id', task.id); 
 
                 const foodEl = document.createElement('div');
                 foodEl.className = 'food-icon';
@@ -755,7 +803,6 @@
                 const targetLayer = document.querySelector(`.fridge-layer[data-layer="${task.layer}"]`);
                 if (targetLayer) targetLayer.appendChild(foodContainer);
 
-                // 2. 顺序渲染右侧文字清单条目
                 const itemEl = document.createElement('li');
                 itemEl.className = 'task-item';
                 itemEl.setAttribute('data-status', task.status);
@@ -784,10 +831,10 @@
 
                 itemEl.innerHTML = `
                     <div class="task-info">
-                        <span style="font-size:20px;">${task.food}</span>
+                        <span style="font-size:18px;">${task.food}</span>
                         <div>
-                            <div style="font-weight:400; font-size:14px; color:var(--text-main);">${task.name}</div>
-                            <div style="font-size:11px; color:var(--text-muted);">层级:第${task.layer}层</div>
+                            <div class="task-name-text">${task.name}</div>
+                            <div style="font-size:10px; color:var(--text-muted);">层级:第${task.layer}层</div>
                         </div>
                     </div>
                     <div>${actionHtml}</div>
@@ -799,4 +846,3 @@
     </script>
 </body>
 </html>
- 
