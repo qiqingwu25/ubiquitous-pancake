@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务冰箱</title>
+    <style>
+        :root {
+            --fridge-bg: #ffffff;
+            --fridge-shell: #e9ecef; /* 冰箱外壳银灰色 */
+            --fridge-border: #ced4da;
+            --layer-bg: #ffffff;
+            --text-main: #212529;
+            --text-muted: #868e96;
+            --border-light: #e9ecef;
+            --btn-bg: #495057;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #fdfdfd;
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--text-main); font-weight: 400; margin-bottom: 5px; font-size: 24px; }
+        .sub-title { color: var(--text-muted); font-size: 13px; margin-bottom: 25px; }
+
+        .controls { margin-bottom: 25px; }
+
+        .btn {
+            background-color: var(--btn-bg);
+            color: white;
+            border: 1px solid var(--btn-bg);
+            padding: 8px 18px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn:hover { background-color: #212529; border-color: #212529; }
+
+        /* 主布局 */
+        .workspace {
+            display: flex;
+            gap: 30px;
+            width: 95%;
+            max-width: 1100px;
+        }
+
+        .left-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 拟物化极简冰箱外壳 */
+        .fridge-container {
+            position: relative;
+            padding-right: 10px; /* 为侧边把手留出空间 */
+        }
+
+        .fridge {
+            height: 540px;
+            background-color: var(--fridge-bg);
+            /* 模拟双层保温冰箱外壳线条 */
+            border: 12px solid var(--fridge-shell);
+            border-top-width: 18px;
+            border-bottom-width: 18px;
+            border-radius: 12px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04), inset 0 0 15px rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+
+        /* 极简冰箱把手 */
+        .fridge-handle {
+            position: absolute;
+            right: 0;
+            top: 140px;
+            width: 8px;
+            height: 140px;
+            background: #adb5bd;
+            border-radius: 0 4px 4px 0;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* 晶莹玻璃搁板层 */
+        .fridge-layer {
+            flex: 1;
+            /* 模拟高档加厚分层玻璃横梁 */
+            border-bottom: 5px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 10px 15px;
+            gap: 22px;
+            position: relative;
+            background-color: var(--layer-bg);
+            box-shadow: inset 0 -3px 3px -3px rgba(0,0,0,0.05);
+            transition: background-color 0.2s;
+        }
+        .fridge-layer:last-child { border-bottom: none; }
+        .fridge-layer.drag-over { background-color: #f8f9fa; }
+
+        .layer-badge {
+            position: absolute; right: 12px; top: 6px;
+            font-size: 10px; color: var(--text-muted); 
+            border: 1px solid var(--border-light); padding: 1px 5px; border-radius: 3px;
+            pointer-events: none; background: rgba(255,255,255,0.9);
+            z-index: 2;
+        }
+
+        /* 今日已饱食空盘区 */
+        .empty-plates-container {
+            background: #ffffff;
+            border: 1px solid var(--fridge-border);
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 80px;
+        }
+        .empty-plates-container h4 { margin: 0 0 10px 0; font-weight: 500; font-size: 14px; color: var(--text-main); }
+        .plates-shelf { display: flex; flex-wrap: wrap; gap: 12px; }
+        .chewed-food { font-size: 24px; position: relative; cursor: help; }
+
+        /* 食物组件 */
+        .food-container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative;
+            transition: transform 0.15s ease;
+        }
+        .food-icon { font-size: 36px; cursor: grab; transition: transform 0.15s; user-select: none; }
+        .food-icon:active { cursor: grabbing; }
+        .food-icon:hover { transform: scale(1.1); }
+        
+        .food-container[data-status="running"] .food-icon { animation: breathe 2s infinite alternate; }
+        .food-container[data-status="paused"] { filter: grayscale(0.5) opacity(0.6); }
+
+        .food-timer-tag {
+            font-size: 9px; background: #f1f3f5; color: var(--text-main);
+            padding: 1px 4px; border-radius: 3px; margin-top: 3px; font-family: monospace;
+            border: 1px solid #dee2e6;
+        }
+
+        @keyframes breathe {
+            from { transform: scale(1); }
+            to { transform: scale(1.12); }
+        }
+
+        /* 右侧文字清单 */
+        .text-list-container {
+            width: 420px; background: white; border-radius: 8px;
+            border: 1px solid var(--fridge-border);
+            padding: 20px; display: flex; flex-direction: column; height: 645px;
+        }
+        .text-list-container h3 { font-weight: 500; font-size: 16px; margin-top: 0; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
+        .task-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        
+        .task-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px; margin-bottom: 10px; background: #ffffff;
+            border-radius: 4px; border: 1px solid var(--border-light); transition: all 0.2s ease;
+        }
+        .task-item[data-status="running"] { border-left: 3px solid #495057; background: #fdfdfd; }
+        .task-item[data-status="paused"] { background: #f8f9fa; color: var(--text-muted); }
+
+        .task-info { display: flex; align-items: center; gap: 10px; }
+        .task-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+        
+        .btn-sm {
+            border: 1px solid #ced4da; padding: 4px 8px; border-radius: 3px;
+            font-size: 12px; cursor: pointer; color: var(--text-main); background: #ffffff;
+        }
+        .btn-sm:hover { background: #f1f3f5; }
+        .btn-start { background: #ffffff; border-color: #adb5bd; }
+        .btn-pause { background: #ffffff; }
+        .btn-finish { background: var(--btn-bg); color: #fff; border-color: var(--btn-bg); }
+        .btn-reheat { background: #ffffff; border-color: #495057; font-weight: bold; }
+
+        .live-timer { font-family: monospace; font-size: 12px; color: var(--text-main); }
+
+        /* 遮罩图层 */
+        .fridge-door, .microwave-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 10; text-align: center;
+            padding: 20px; box-sizing: border-box;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            background: rgba(255, 255, 255, 0.96); color: var(--text-main);
+        }
+        .fridge-door.active { opacity: 1; pointer-events: auto; }
+        .microwave-screen.active { opacity: 1; pointer-events: auto; border: 2px solid var(--text-main); }
+
+        .anchor-memo-box {
+            background: #f8f9fa; border: 1px solid #ced4da;
+            padding: 12px; border-radius: 4px; max-width: 80%; margin-top: 15px;
+            color: var(--text-main); font-size: 14px;
+        }
+
+        /* 弹窗核心样式 */
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.3); display: none;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .modal { background: white; padding: 25px; border-radius: 6px; width: 360px; border: 1px solid var(--fridge-border); }
+        .modal h3 { margin-top: 0; font-weight: 500; font-size: 16px; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 8px;}
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-main);}
+        .form-group input[type="text"] { width: 93%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;}
+        .form-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #495057;}
+        
+        .alex-text-desc {
+            background: #f8f9fa; border-left: 2px solid #6c757d;
+            padding: 8px; border-radius: 3px; font-size: 12px;
+            color: var(--text-main); margin-top: 4px; min-height: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧊 任务冰箱</h1>
+    <div class="sub-title">让工作任务像食物一样方便存储、保鲜与消化</div>
+    
+    <div class="controls">
+        <button class="btn" onclick="openAddTaskModal()">+ 放入新食物（创建任务）</button>
+        <label style="margin-left: 20px; font-size: 12px; color: var(--text-muted); background:#f1f3f5; padding:5px 10px; border-radius:4px;">
+            <input type="checkbox" id="testMode" checked> 💡 开启加速调试模式（1小时压缩为5秒）
+        </label>
+    </div>
+
+    <div class="workspace">
+        <div class="left-column">
+            <div class="fridge-container">
+                <div class="fridge" id="fridge">
+                    <div class="fridge-door" id="fridgeDoor">
+                        <h3 style="font-size:18px; margin-bottom:5px;">静心准备中</h3>
+                        <p style="max-width:80%; font-size:13px; color:var(--text-muted);">闭合外界干扰，调顺呼吸，准备好后进入专注状态...</p>
+                        <div style="font-size: 44px; font-weight: 300; margin-top:10px;" id="meditationCountdown">30s</div>
+                    </div>
+
+                    <div class="microwave-screen" id="microwaveScreen">
+                        <h3 style="font-size:18px; margin-bottom:5px;">正在重温接轨思维进度...</h3>
+                        <p style="font-size:12px; color:var(--text-muted);">正在无缝同步上次的断点，请看提示：</p>
+                        <div class="anchor-memo-box">
+                            📍 <b>断点留存：</b><span id="anchorDisplay">加载中...</span>
+                        </div>
+                        <div style="font-size: 36px; font-weight: 300; margin-top:10px;" id="reheatCountdown">5s</div>
+                    </div>
+
+                    <div class="fridge-layer" data-layer="1" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+                        <span class="layer-badge">第一层：顶层冷冻 [优先极高]</span>
+                    </div>
+                    <div class="fridge-layer" data-layer="2" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+                        <span class="layer-badge">第二层：上层冷藏 [核心推进]</span>
+                    </div>
+                    <div class="fridge-layer" data-layer="3" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+                        <span class="layer-badge">第三层：下层冷藏 [缓步处理]</span>
+                    </div>
+                    <div class="fridge-layer" data-layer="4" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
+                        <span class="layer-badge">第四层：底层保鲜 [低能挂机]</span>
+                    </div>
+                </div>
+                <div class="fridge-handle"></div>
+            </div>
+
+            <div class="empty-plates-container">
+                <h4>🍽️ 今日已饱食空盘区</h4>
+                <div class="plates-shelf" id="platesShelf">
+                    <span style="color:#adb5bd; font-size:13px;" id="emptyPlatePlaceholder">暂无空盘，快去完成一项任务吧！</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-list-container">
+            <h3>📋 任务文字清单 <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(已严格同步冰箱内部空间排序)</span></h3>
+            <ul class="task-list" id="taskList"></ul>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal">
+            <h3>🍎 拟定新的食物任务</h3>
+            <div class="form-group" style="margin-top:10px;">
+                <label>任务事项名称</label>
+                <input type="text" id="taskName" placeholder="具体、清晰的单步行动...">
+            </div>
+            <div class="form-group">
+                <label>重要性评估 (-5 到 5分)</label>
+                <input type="range" id="paramImportance" min="-5" max="5" value="0" oninput="updateRangeLabel(this)">
+                <div class="range-value" style="text-align:right; font-size:11px; color:var(--text-muted);">当前: <span>0</span>分</div>
+            </div>
+            <div class="form-group">
+                <label>紧迫需求度 (-5 到 5分)</label>
+                <input type="range" id="paramUrgency" min="-5" max="5" value="0" oninput="updateRangeLabel(this)">
+                <div class="range-value" style="text-align:right; font-size:11px; color:var(--text-muted);">当前: <span>0</span>分</div>
+            </div>
+            <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn" style="background-color:#fff; color:var(--text-main); border-color:#ced4da;" onclick="closeModal('taskModal')">取消</button>
+                <button class="btn" onclick="submitTask()">确认放入</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="anchorModal">
+        <div class="modal">
+            <h3>🥡 打包暂存</h3>
+            <p style="font-size: 13px; color: var(--text-main);">记录当前进度，花几秒写下一句断点描述：</p>
+            <div class="form-group">
+                <label>你刚停留在哪里？待会回来第一步看什么？</label>
+                <input type="text" id="anchorInput" placeholder="例如：刚查到第3页，待会复制表格..." autofocus>
+            </div>
+            <div class="modal-actions" style="display:flex; justify-content:flex-end;">
+                <button class="btn" onclick="submitAnchor()">锁死断点并暂停</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="emotionModal">
+        <div class="modal">
+            <h3>🧠 状态与能量定时盘点</h3>
+            <p style="font-size: 11px; color: var(--text-muted);">（后台持续计时，请依据直觉选择）</p>
+            <div class="form-group">
+                <label>1. 行动能量状态</label>
+                <input type="range" id="moodEnergy" min="1" max="10" value="5" oninput="onEnergySliderChange(this)">
+                <div class="alex-text-desc" id="energyDesc">🔋 绿色续航</div>
+            </div>
+            <div class="form-group">
+                <label>2. 当前工作舒适度</label>
+                <input type="range" id="moodHappiness" min="1" max="10" value="5" oninput="onHappinessSliderChange(this)">
+                <div class="alex-text-desc" id="happinessDesc">⛅ 无功无过</div>
+            </div>
+            <div class="modal-actions" style="display:flex; justify-content:flex-end;">
+                <button class="btn" onclick="submitEmotion()">提交复盘</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="deepMeditationModal">
+        <div class="modal" style="text-align: center;">
+            <h3>🧘‍♀️ 状态调适建议</h3>
+            <p id="meditationReason" style="font-size: 13px; font-weight: bold; color: #212529;"></p>
+            <p style="font-size: 13px; color: var(--text-muted);">系统检测到您的能效状态处于极值区间。建议暂时放下工作，进行 5分钟 短休调适。</p>
+            <button class="btn" onclick="closeModal('deepMeditationModal')">收到</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="spoilModal">
+        <div class="modal" style="text-align: center;">
+            <h3>⚠️ 提示：任务执行已超2小时</h3>
+            <p style="font-size:13px; color:var(--text-main);">此项任务已持续加热执行超过2小时。</p>
+            <p style="font-size:14px; font-weight:bold; color: var(--btn-bg);">需要缓缓吗？</p>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:15px;">
+                <button class="btn" style="font-size:13px;" onclick="handleSpoilAction('split')">🥡 打包暂停：切分成更小的步骤</button>
+                <button class="btn" style="background:#ffffff; color:var(--text-main); border-color:#ced4da; font-size:13px;" onclick="handleSpoilAction('keep')">继续推进：目前状态正顺畅</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="timeoutModal">
+        <div class="modal" style="text-align: center;">
+            <h3 id="timeoutTitle">⏰ 冰箱内务整理提示</h3>
+            <p id="timeoutContent" style="font-size:14px; color:var(--text-main); padding: 10px 0; line-height: 1.4;"></p>
+            <button class="btn" onclick="closeModal('timeoutModal')">明确，去处理</button>
+        </div>
+    </div>
+
+    <script>
+        const cleanEmojis = ['🍎', '🍅', '🍕', '🍰', '🍔', '🍇', '🍉', '🥑', '🧀', '🥚', '🥩', '🥕', '🍗', '🍙'];
+        let tasks = [];
+        let timerInterval = null;
+        let currentTargetTaskId = null; 
+
+        const energyMap = { 1: "🟥🔋 严重亏电", 2: "🟥🔋 严重亏电", 3: "🟥🔋 严重亏电", 4: "🔋 绿色续航", 5: "🔋 绿色续航", 6: "🔋 绿色续航", 7: "🔋 绿色续航", 8: "⚡ 引擎过热", 9: "⚡ 引擎过热", 10: "⚡ 引擎过热" };
+        const happinessMap = { 1: "🌧️ 阻力较大", 2: "🌧️ 阻力较大", 3: "🌧️ 阻力较大", 4: "⛅ 无功无过", 5: "⛅ 无功无过", 6: "⛅ 无功无过", 7: "⛅ 无功无过", 8: "☀️ 阳光普照", 9: "☀️ 阳光普照", 10: "☀️ 阳光普照" };
+
+        function onEnergySliderChange(el) { document.getElementById('energyDesc').innerText = energyMap[el.value]; }
+        function onHappinessSliderChange(el) { document.getElementById('happinessDesc').innerText = happinessMap[el.value]; }
+        function updateRangeLabel(el) { el.nextElementSibling.querySelector('span').innerText = el.value; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function openAddTaskModal() {
+            document.getElementById('taskName').value = '';
+            document.getElementById('paramImportance').value = 0;
+            document.getElementById('paramUrgency').value = 0;
+            document.querySelectorAll('#taskModal .range-value span').forEach(s => s.innerText = '0');
+            document.getElementById('taskModal').style.display = 'flex';
+        }
+
+        function submitTask() {
+            const name = document.getElementById('taskName').value.trim();
+            if (!name) { alert('请输入任务名称！'); return; }
+
+            const imp = parseInt(document.getElementById('paramImportance').value);
+            const urg = parseInt(document.getElementById('paramUrgency').value);
+            const score = imp + urg;
+
+            let layer = 4;
+            if (score >= 5) layer = 1;
+            else if (score >= 0) layer = 2;
+            else if (score >= -5) layer = 3;
+
+            const randomFood = cleanEmojis[Math.floor(Math.random() * cleanEmojis.length)];
+
+            tasks.push({
+                id: Date.now().toString(),
+                name: name,
+                score: score,
+                layer: layer,
+                food: randomFood,
+                status: 'pending', 
+                seconds: 0,        
+                pausedSeconds: 0,   
+                pendingSeconds: 0,  
+                emotionChecked: false,
+                spoilAlerted: false,
+                pauseTimeoutAlerted: false,   
+                pendingTimeoutAlerted: false, 
+                anchorText: '' 
+            });
+
+            closeModal('taskModal');
+            // 新任务默认排在对应层级的末尾，触发一次全局排序维护
+            reorderTasksByFridgeLayout();
+            startGlobalTimer(); 
+            render();
+        }
+
+        // 拖拽事件控制
+        function allowDrop(ev) { 
+            ev.preventDefault(); 
+            let target = ev.target;
+            while (target && !target.classList.contains('fridge-layer')) {
+                target = target.parentElement;
+            }
+            if(target) target.classList.add('drag-over');
+        }
+
+        function dragLeave(ev) {
+            let target = ev.target;
+            while (target && !target.classList.contains('fridge-layer')) {
+                target = target.parentElement;
+            }
+            if(target) target.classList.remove('drag-over');
+        }
+
+        function drag(ev, id) { 
+            ev.dataTransfer.setData("text/plain", id); 
+        }
+
+        // 核心改动：横向坐标感知的精准放置与重组
+        function drop(ev) {
+            ev.preventDefault();
+            const id = ev.dataTransfer.getData("text/plain");
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            let targetLayerEl = ev.target;
+            while (targetLayerEl && !targetLayerEl.classList.contains('fridge-layer')) {
+                targetLayerEl = targetLayerEl.parentElement;
+            }
+            if (!targetLayerEl) return;
+            targetLayerEl.classList.remove('drag-over');
+            
+            const targetLayerNum = parseInt(targetLayerEl.getAttribute('data-layer'));
+
+            // 抓取该层级内所有除了当前被拖拽物品以外的图标DOM元素
+            const currentLayerItems = [...targetLayerEl.querySelectorAll('.food-container')].filter(el => el.getAttribute('data-id') !== id);
+            
+            // 依据鼠标的 clientX 判断应该插入在哪个图标之前（实现同层左右排序）
+            let insertIndex = currentLayerItems.length;
+            for (let i = 0; i < currentLayerItems.length; i++) {
+                const box = currentLayerItems[i].getBoundingClientRect();
+                if (ev.clientX < box.left + box.width / 2) {
+                    insertIndex = i;
+                    break;
+                }
+            }
+
+            // 从底层全局数据集中临时抽出该任务并变更层级
+            tasks = tasks.filter(t => t.id !== id);
+            task.layer = targetLayerNum;
+
+            // 获取目标层级里现存的未完成数据
+            let targetLayerTasks = tasks.filter(t => t.layer === targetLayerNum && t.status !== 'finished');
+            // 将拖拽的任务插入到计算出的精准位置
+            targetLayerTasks.splice(insertIndex, 0, task);
+
+            // 重新按“层数从1到4”拼装整个全局任务链
+            let finalTasks = [];
+            for (let l = 1; l <= 4; l++) {
+                if (l === targetLayerNum) {
+                    finalTasks.push(...targetLayerTasks);
+                } else {
+                    finalTasks.push(...tasks.filter(t => t.layer === l && t.status !== 'finished'));
+                }
+            }
+            // 拼接已完成的数据项
+            finalTasks.push(...tasks.filter(t => t.status === 'finished'));
+            tasks = finalTasks;
+
+            render();
+        }
+
+        // 初始化或加入新任务时的基础保底空间层级排序排序
+        function reorderTasksByFridgeLayout() {
+            let ordered = [];
+            for(let l = 1; l <= 4; l++) {
+                ordered.push(...tasks.filter(t => t.layer === l && t.status !== 'finished'));
+            }
+            ordered.push(...tasks.filter(t => t.status === 'finished'));
+            tasks = ordered;
+        }
+
+        function initiateTaskLaunch(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            if (task.status === 'paused') {
+                currentTargetTaskId = id;
+                const microwave = document.getElementById('microwaveScreen');
+                document.getElementById('anchorDisplay').innerText = task.anchorText || "无断点记录";
+                microwave.classList.add('active');
+
+                let timeLeft = 5;
+                document.getElementById('reheatCountdown').innerText = `${timeLeft}s`;
+
+                const reheatInterval = setInterval(() => {
+                    timeLeft--;
+                    document.getElementById('reheatCountdown').innerText = `${timeLeft}s`;
+                    if (timeLeft <= 0) {
+                        clearInterval(reheatInterval);
+                        microwave.classList.remove('active');
+                        executeTaskActivation(id);
+                    }
+                }, 1000);
+
+            } else {
+                const door = document.getElementById('fridgeDoor');
+                const countdownEl = document.getElementById('meditationCountdown');
+                door.classList.add('active');
+
+                let timeLeft = 30;
+                countdownEl.innerText = `${timeLeft}s`;
+
+                const medInterval = setInterval(() => {
+                    timeLeft--;
+                    countdownEl.innerText = `${timeLeft}s`;
+                    if (timeLeft <= 0) {
+                        clearInterval(medInterval);
+                        door.classList.remove('active');
+                        executeTaskActivation(id);
+                    }
+                }, 1000);
+            }
+        }
+
+        function executeTaskActivation(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.status = 'running';
+                task.pausedSeconds = 0; 
+                render();
+            }
+            startGlobalTimer();
+        }
+
+        function startGlobalTimer() {
+            if (timerInterval) return;
+            timerInterval = setInterval(() => {
+                let hasActiveTasks = false;
+                tasks.forEach(t => {
+                    if (t.status === 'finished') return;
+                    hasActiveTasks = true;
+                    const isTestMode = document.getElementById('testMode').checked;
+
+                    if (t.status === 'running') {
+                        t.seconds++;
+                        if (t.seconds >= (isTestMode ? 5 : 3600) && !t.emotionChecked) {
+                            t.emotionChecked = true;
+                            popContextualEmotionModal();
+                        }
+                        if (t.seconds >= (isTestMode ? 15 : 7200) && !t.spoilAlerted) {
+                            t.spoilAlerted = true;
+                            currentTargetTaskId = t.id;
+                            document.getElementById('spoilModal').style.display = 'flex';
+                        }
+                    } 
+                    else if (t.status === 'paused') {
+                        t.pausedSeconds++;
+                        if (t.pausedSeconds >= (isTestMode ? 10 : 7200) && !t.pauseTimeoutAlerted) {
+                            t.pauseTimeoutAlerted = true;
+                            triggerTimeoutPopup(`⚠️ 任务搁置超时`, `任务「${t.name}」已打包暂停超过 2 小时未继续。需要缓缓或者重新切分子步骤吗？`);
+                        }
+                    } 
+                    else if (t.status === 'pending') {
+                        t.pendingSeconds++;
+                        if (t.pendingSeconds >= (isTestMode ? 35 : 25200) && !t.pendingTimeoutAlerted) {
+                            t.pendingTimeoutAlerted = true;
+                            triggerTimeoutPopup(`⏳ 任务久放未动`, `任务「${t.name}」已加入清单超过 7 小时还未开始烹饪。建议重新调配货架层级或直接开火。`);
+                        }
+                    }
+                });
+                updateLiveTimers();
+                if (!hasActiveTasks) { clearInterval(timerInterval); timerInterval = null; }
+            }, 1000);
+        }
+
+        function triggerTimeoutPopup(title, content) {
+            document.getElementById('timeoutTitle').innerText = title;
+            document.getElementById('timeoutContent').innerText = content;
+            document.getElementById('timeoutModal').style.display = 'flex';
+        }
+
+        function updateLiveTimers() {
+            tasks.forEach(t => {
+                if(t.status === 'finished') return;
+                const hrs = Math.floor(t.seconds / 3600).toString().padStart(2, '0');
+                const mins = Math.floor((t.seconds % 3600) / 60).toString().padStart(2, '0');
+                const secs = (t.seconds % 60).toString().padStart(2, '0');
+                const timeStr = `${hrs}:${mins}:${secs}`;
+
+                const txt = document.getElementById(`time-text-${t.id}`);
+                if (txt) txt.innerText = t.status === 'paused' ? '已暂停' : timeStr;
+                const frg = document.getElementById(`time-fridge-${t.id}`);
+                if (frg) frg.innerText = t.status === 'paused' ? '⏸️ ' + timeStr : timeStr;
+            });
+        }
+
+        function requestTaskPause(id) {
+            currentTargetTaskId = id;
+            document.getElementById('anchorInput').value = '';
+            document.getElementById('anchorModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('anchorInput').focus(), 150);
+        }
+
+        function submitAnchor() {
+            const text = document.getElementById('anchorInput').value.trim();
+            const task = tasks.find(t => t.id === currentTargetTaskId);
+            if (task) {
+                task.status = 'paused';
+                task.pausedSeconds = 0; 
+                task.anchorText = text || "未留存具体描述。";
+                closeModal('anchorModal');
+                render();
+            }
+        }
+
+        function handleSpoilAction(type) {
+            closeModal('spoilModal');
+            if (type === 'split') { requestTaskPause(currentTargetTaskId); }
+        }
+
+        function popContextualEmotionModal() {
+            document.getElementById('moodEnergy').value = 5;
+            document.getElementById('moodHappiness').value = 5;
+            document.getElementById('emotionModal').style.display = 'flex';
+        }
+
+        function submitEmotion() {
+            const energy = parseInt(document.getElementById('moodEnergy').value);
+            const happiness = parseInt(document.getElementById('moodHappiness').value);
+            closeModal('emotionModal');
+            if ((energy <= 3 && happiness <= 3) || (energy >= 8 && happiness >= 8)) {
+                const reason = (energy <= 3) ? "【提示】：当前能量处于低位红格。" : "【提示】：当前节奏可能过紧。";
+                document.getElementById('meditationReason').innerText = reason;
+                document.getElementById('deepMeditationModal').style.display = 'flex';
+            }
+        }
+
+        function finaliseTaskEaten(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.status = 'finished';
+                render();
+                appendPlateToDopamineZone(task);
+            }
+        }
+
+        function appendPlateToDopamineZone(task) {
+            const placeholder = document.getElementById('emptyPlatePlaceholder');
+            if (placeholder) placeholder.remove();
+
+            const shelf = document.getElementById('platesShelf');
+            const plate = document.createElement('div');
+            plate.className = 'chewed-food';
+            plate.innerText = '🍽️'; 
+            
+            const hrs = Math.floor(task.seconds / 3600);
+            const mins = Math.floor((task.seconds % 3600) / 60);
+            plate.setAttribute('title', `已完成: ${task.name}\n耗时: ${hrs}小时${mins}分钟`);
+            
+            const miniFood = document.createElement('span');
+            miniFood.style.cssText = "font-size:10px; position:absolute; bottom:0; right:0; background:white; border-radius:50%; padding:1px; border:1px solid #dee2e6;";
+            miniFood.innerText = task.food;
+            plate.appendChild(miniFood);
+            shelf.appendChild(plate);
+        }
+
+        // 渲染核心：完全复用全局任务集被精准重组后的数组序列
+        function render() {
+            // 清理左边货架
+            document.querySelectorAll('.fridge-layer').forEach(layer => {
+                const badge = layer.querySelector('.layer-badge');
+                layer.innerHTML = '';
+                layer.appendChild(badge);
+            });
+
+            // 清理右边清单DOM
+            const taskListEl = document.getElementById('taskList');
+            taskListEl.innerHTML = '';
+
+            // 遍历渲染：因为全局 tasks 数组已经在 drop 事件中排好了“从上到下、由左至右”的结构
+            // 所以直接顺向循环生成 DOM，左右两侧的物理空间表现与文字清单完全100%映射
+            tasks.forEach(task => {
+                if (task.status === 'finished') return;
+
+                // 1. 渲染左侧冰箱内的图形食物
+                const foodContainer = document.createElement('div');
+                foodContainer.className = 'food-container';
+                foodContainer.setAttribute('data-status', task.status);
+                foodContainer.setAttribute('data-id', task.id); // 用于坐标捕捉辨识
+
+                const foodEl = document.createElement('div');
+                foodEl.className = 'food-icon';
+                foodEl.innerText = task.food;
+                foodEl.setAttribute('draggable', 'true');
+                foodEl.addEventListener('dragstart', (e) => drag(e, task.id));
+                foodContainer.appendChild(foodEl);
+
+                if (task.status === 'running' || task.status === 'paused') {
+                    const timerTag = document.createElement('div');
+                    timerTag.className = 'food-timer-tag';
+                    timerTag.id = `time-fridge-${task.id}`;
+                    const hrs = Math.floor(task.seconds / 3600).toString().padStart(2, '0');
+                    const mins = Math.floor((task.seconds % 3600) / 60).toString().padStart(2, '0');
+                    const secs = (task.seconds % 60).toString().padStart(2, '0');
+                    timerTag.innerText = `${hrs}:${mins}:${secs}`;
+                    if (task.status === 'paused') {
+                        timerTag.style.background = '#f8f9fa';
+                        timerTag.innerText = '⏸️ ' + timerTag.innerText;
+                    }
+                    foodContainer.appendChild(timerTag);
+                }
+                
+                const targetLayer = document.querySelector(`.fridge-layer[data-layer="${task.layer}"]`);
+                if (targetLayer) targetLayer.appendChild(foodContainer);
+
+                // 2. 顺序渲染右侧文字清单条目
+                const itemEl = document.createElement('li');
+                itemEl.className = 'task-item';
+                itemEl.setAttribute('data-status', task.status);
+
+                let actionHtml = '';
+                if (task.status === 'pending') {
+                    actionHtml = `<button class="btn-sm btn-start" onclick="initiateTaskLaunch('${task.id}')">开火烹饪</button>`;
+                } else if (task.status === 'running') {
+                    actionHtml = `
+                        <div class="task-actions">
+                            <span class="live-timer" id="time-text-${task.id}">00:00:00</span>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn-sm btn-pause" onclick="requestTaskPause('${task.id}')">🥡 打包</button>
+                                <button class="btn-sm btn-finish" onclick="finaliseTaskEaten('${task.id}')">完成</button>
+                            </div>
+                        </div>
+                    `;
+                } else if (task.status === 'paused') {
+                    actionHtml = `
+                        <div class="task-actions">
+                            <span class="live-timer" style="color:var(--text-muted);" id="time-text-${task.id}">已暂停</span>
+                            <button class="btn-sm btn-reheat" onclick="initiateTaskLaunch('${task.id}')">♨️ 恢复</button>
+                        </div>
+                    `;
+                }
+
+                itemEl.innerHTML = `
+                    <div class="task-info">
+                        <span style="font-size:20px;">${task.food}</span>
+                        <div>
+                            <div style="font-weight:400; font-size:14px; color:var(--text-main);">${task.name}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">层级:第${task.layer}层</div>
+                        </div>
+                    </div>
+                    <div>${actionHtml}</div>
+                `;
+                taskListEl.appendChild(itemEl);
+            });
+            updateLiveTimers();
+        }
+    </script>
+</body>
+</html>
