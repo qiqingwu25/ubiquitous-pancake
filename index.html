@@ -163,7 +163,7 @@
         .plates-shelf { display: flex; flex-wrap: wrap; gap: 12px; }
         .chewed-food { font-size: 24px; position: relative; cursor: help; }
 
-        /* 食物组件 */
+        /* 食物组件（升级为专属自定义图片样式） */
         .food-container { 
             display: flex; 
             flex-direction: column; 
@@ -172,11 +172,18 @@
             transition: transform 0.15s ease;
             flex-shrink: 0;
         }
-        .food-icon { font-size: 34px; cursor: grab; transition: transform 0.15s; user-select: none; }
+        .food-icon { 
+            width: 44px; 
+            height: 44px; 
+            object-fit: contain; 
+            cursor: grab; 
+            transition: transform 0.15s; 
+            user-select: none;
+        }
         .food-icon:active { cursor: grabbing; }
         
         .food-container[data-status="running"] .food-icon { animation: breathe 2s infinite alternate; }
-        .food-container[data-status="paused"] { filter: grayscale(0.5) opacity(0.6); }
+        .food-container[data-status="paused"] { filter: grayscale(0.7) opacity(0.5); }
 
         .food-timer-tag {
             font-size: 9px; background: #f1f3f5; color: var(--text-main);
@@ -214,7 +221,7 @@
         .task-item[data-status="running"] { border-left: 3px solid #495057; background: #fdfdfd; }
         .task-item[data-status="paused"] { background: #f8f9fa; color: var(--text-muted); }
 
-        .task-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+        .task-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
         .task-info div { min-width: 0; overflow: hidden; }
         .task-name-text { font-weight: 400; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
@@ -261,8 +268,8 @@
         .modal h3 { margin-top: 0; font-weight: 500; font-size: 16px; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 8px;}
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-main);}
-        .form-group input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;}
-        .form-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #495057;}
+        .form-group input type=["text"] { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;}
+        .form-group input type=["range"] { width: 100%; cursor: pointer; accent-color: #495057;}
         
         .alex-text-desc {
             background: #f8f9fa; border-left: 2px solid #6c757d;
@@ -270,7 +277,7 @@
             color: var(--text-main); margin-top: 4px; min-height: 16px;
         }
 
-        /* 💻 当屏幕宽度大于 800 像素时（电脑端），自动切换为优雅的左右双栏布局 */
+        /* 💻 电脑端适配 */
         @media (min-width: 800px) {
             body { padding: 20px; }
             h1 { font-size: 24px; }
@@ -441,7 +448,13 @@
     </div>
 
     <script>
-        const cleanEmojis = ['🍎', '🍅', '🍕', '🍰', '🍔', '🍇', '🍉', '🥑', '🧀', '🥚', '🥩', '🥕', '🍗', '🍙'];
+        // 【已升级】引入你上传的 15 张自定义图片文件名
+        const cleanImages = [
+            '菜心.png', '番茄.png', '鲑鱼(三文鱼).png', '胡萝卜.png', '花菜.png', 
+            '鸡蛋.png', '蘑菇.png', '牛排.png', '牛油果.png', '排骨.png', 
+            '培根.png', '青菜.png', '豌豆.png', '虾仁.png', '鲜玉米.png'
+        ];
+        
         let tasks = [];
         let timerInterval = null;
         let currentTargetTaskId = null; 
@@ -475,15 +488,21 @@
             else if (score >= 0) layer = 2;
             else if (score >= -5) layer = 3;
 
-            const randomFood = cleanEmojis[Math.floor(Math.random() * cleanEmojis.length)];
+            // 随机抽取图片
+            const randomImg = cleanImages[Math.floor(Math.random() * cleanImages.length)];
 
             tasks.push({
                 id: Date.now().toString(),
                 name: name,
                 score: score,
                 layer: layer,
-                food: randomFood,
+                image: randomImg, // 存储图片文件名
                 status: 'pending', 
+                createTime: Date.now(),      
+                startTime: null,             
+                pauseTime: null,             
+                accumulatedSeconds: 0,       
+                accumulatedPausedSeconds: 0, 
                 seconds: 0,        
                 pausedSeconds: 0,   
                 pendingSeconds: 0,  
@@ -621,8 +640,12 @@
         function executeTaskActivation(id) {
             const task = tasks.find(t => t.id === id);
             if (task) {
+                const now = Date.now();
+                if (task.status === 'paused') {
+                    task.accumulatedPausedSeconds += Math.floor((now - task.pauseTime) / 1000);
+                }
                 task.status = 'running';
-                task.pausedSeconds = 0; 
+                task.startTime = now; 
                 render();
             }
             startGlobalTimer();
@@ -631,42 +654,51 @@
         function startGlobalTimer() {
             if (timerInterval) return;
             timerInterval = setInterval(() => {
-                let hasActiveTasks = false;
-                tasks.forEach(t => {
-                    if (t.status === 'finished') return;
-                    hasActiveTasks = true;
-                    const isTestMode = document.getElementById('testMode').checked;
-
-                    if (t.status === 'running') {
-                        t.seconds++;
-                        if (t.seconds >= (isTestMode ? 5 : 3600) && !t.emotionChecked) {
-                            t.emotionChecked = true;
-                            popContextualEmotionModal();
-                        }
-                        if (t.seconds >= (isTestMode ? 15 : 7200) && !t.spoilAlerted) {
-                            t.spoilAlerted = true;
-                            currentTargetTaskId = t.id;
-                            document.getElementById('spoilModal').style.display = 'flex';
-                        }
-                    } 
-                    else if (t.status === 'paused') {
-                        t.pausedSeconds++;
-                        if (t.pausedSeconds >= (isTestMode ? 10 : 7200) && !t.pauseTimeoutAlerted) {
-                            t.pauseTimeoutAlerted = true;
-                            triggerTimeoutPopup(`⚠️ 任务搁置超时`, `任务「${t.name}」已打包暂停超过 2 小时未继续。需要缓缓或者重新切分子步骤吗？`);
-                        }
-                    } 
-                    else if (t.status === 'pending') {
-                        t.pendingSeconds++;
-                        if (t.pendingSeconds >= (isTestMode ? 35 : 25200) && !t.pendingTimeoutAlerted) {
-                            t.pendingTimeoutAlerted = true;
-                            triggerTimeoutPopup(`⏳ 任务久放未动`, `任务「${t.name}」已加入清单超过 7 小时还未开始烹饪。建议重新调配货架层级或直接开火。`);
-                        }
-                    }
-                });
-                updateLiveTimers();
-                if (!hasActiveTasks) { clearInterval(timerInterval); timerInterval = null; }
+                updateTimerCalculations();
             }, 1000);
+        }
+
+        function updateTimerCalculations() {
+            let hasActiveTasks = false;
+            const now = Date.now();
+            const isTestMode = document.getElementById('testMode').checked;
+
+            tasks.forEach(t => {
+                if (t.status === 'finished') return;
+                hasActiveTasks = true;
+
+                if (t.status === 'running') {
+                    t.seconds = t.accumulatedSeconds + Math.floor((now - t.startTime) / 1000);
+
+                    if (t.seconds >= (isTestMode ? 5 : 3600) && !t.emotionChecked) {
+                        t.emotionChecked = true;
+                        popContextualEmotionModal();
+                    }
+                    if (t.seconds >= (isTestMode ? 15 : 7200) && !t.spoilAlerted) {
+                        t.spoilAlerted = true;
+                        currentTargetTaskId = t.id;
+                        document.getElementById('spoilModal').style.display = 'flex';
+                    }
+                } 
+                else if (t.status === 'paused') {
+                    t.pausedSeconds = t.accumulatedPausedSeconds + Math.floor((now - t.pauseTime) / 1000);
+
+                    if (t.pausedSeconds >= (isTestMode ? 10 : 7200) && !t.pauseTimeoutAlerted) {
+                        t.pauseTimeoutAlerted = true;
+                        triggerTimeoutPopup(`⚠️ 任务搁置超时`, `任务「${t.name}」已打包暂停超过 2 小时未继续。需要缓缓或者重新切分子步骤吗？`);
+                    }
+                } 
+                else if (t.status === 'pending') {
+                    t.pendingSeconds = Math.floor((now - t.createTime) / 1000);
+
+                    if (t.pendingSeconds >= (isTestMode ? 35 : 25200) && !t.pendingTimeoutAlerted) {
+                        t.pendingTimeoutAlerted = true;
+                        triggerTimeoutPopup(`⏳ 任务久放未动`, `任务「${t.name}」已加入清单超过 7 小时还未开始烹饪。建议重新调配货架层级或直接开火。`);
+                    }
+                }
+            });
+            updateLiveTimers();
+            if (!hasActiveTasks && timerInterval) { clearInterval(timerInterval); timerInterval = null; }
         }
 
         function triggerTimeoutPopup(title, content) {
@@ -701,8 +733,12 @@
             const text = document.getElementById('anchorInput').value.trim();
             const task = tasks.find(t => t.id === currentTargetTaskId);
             if (task) {
+                const now = Date.now();
+                task.accumulatedSeconds += Math.floor((now - task.startTime) / 1000);
+                task.seconds = task.accumulatedSeconds;
+                
                 task.status = 'paused';
-                task.pausedSeconds = 0; 
+                task.pauseTime = now; 
                 task.anchorText = text || "未留存具体描述。";
                 closeModal('anchorModal');
                 render();
@@ -734,6 +770,10 @@
         function finaliseTaskEaten(id) {
             const task = tasks.find(t => t.id === id);
             if (task) {
+                if (task.status === 'running') {
+                    task.accumulatedSeconds += Math.floor((Date.now() - task.startTime) / 1000);
+                    task.seconds = task.accumulatedSeconds;
+                }
                 task.status = 'finished';
                 render();
                 appendPlateToDopamineZone(task);
@@ -753,10 +793,12 @@
             const mins = Math.floor((task.seconds % 3600) / 60);
             plate.setAttribute('title', `已完成: ${task.name}\n耗时: ${hrs}小时${mins}分钟`);
             
-            const miniFood = document.createElement('span');
-            miniFood.style.cssText = "font-size:10px; position:absolute; bottom:0; right:0; background:white; border-radius:50%; padding:1px; border:1px solid #dee2e6;";
-            miniFood.innerText = task.food;
+            // 【已升级】空盘子右下角的迷你图标也同步变更为你的自定义食材图片
+            const miniFood = document.createElement('img');
+            miniFood.src = task.image;
+            miniFood.style.cssText = "width:14px; height:14px; object-fit:contain; position:absolute; bottom:-2px; right:-2px; background:white; border-radius:50%; padding:1px; border:1px solid #dee2e6;";
             plate.appendChild(miniFood);
+            
             shelf.appendChild(plate);
         }
 
@@ -778,9 +820,10 @@
                 foodContainer.setAttribute('data-status', task.status);
                 foodContainer.setAttribute('data-id', task.id); 
 
-                const foodEl = document.createElement('div');
+                // 【已升级】冰箱里渲染的图标变更为 <img> 标签
+                const foodEl = document.createElement('img');
                 foodEl.className = 'food-icon';
-                foodEl.innerText = task.food;
+                foodEl.src = task.image;
                 foodEl.setAttribute('draggable', 'true');
                 foodEl.addEventListener('dragstart', (e) => drag(e, task.id));
                 foodContainer.appendChild(foodEl);
@@ -829,9 +872,10 @@
                     `;
                 }
 
+                // 【已升级】文字列表左侧的图标也一并变更为你好看的自定义 <img>
                 itemEl.innerHTML = `
                     <div class="task-info">
-                        <span style="font-size:18px;">${task.food}</span>
+                        <img src="${task.image}" style="width:24px; height:24px; object-fit:contain; flex-shrink:0; border-radius: 4px;">
                         <div>
                             <div class="task-name-text">${task.name}</div>
                             <div style="font-size:10px; color:var(--text-muted);">层级:第${task.layer}层</div>
@@ -843,6 +887,13 @@
             });
             updateLiveTimers();
         }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                updateTimerCalculations();
+                render();
+            }
+        });
     </script>
 </body>
 </html>
