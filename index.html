@@ -31,7 +31,7 @@
         .sub-title { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; text-align: center; line-height: 1.4; }
 
         .controls { 
-            margin-bottom: 20px; 
+            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -56,7 +56,7 @@
         .btn:hover { background-color: #212529; border-color: #212529; }
 
         .debug-label {
-            font-size: 11px; 
+            font-size: 11px;
             color: var(--text-muted); 
             background: #f1f3f5; 
             padding: 6px 12px; 
@@ -72,7 +72,7 @@
         /* 主布局 */
         .workspace {
             display: flex;
-            flex-direction: column; /* 默认手机端上下堆叠 */
+            flex-direction: column; 
             gap: 25px;
             width: 100%;
             max-width: 1100px;
@@ -97,7 +97,7 @@
         }
 
         .fridge {
-            height: 500px;
+            height: 640px; 
             background-color: var(--fridge-bg);
             border: 10px solid var(--fridge-shell);
             border-top-width: 15px;
@@ -136,16 +136,18 @@
             background-color: var(--layer-bg);
             box-shadow: inset 0 -3px 3px -3px rgba(0,0,0,0.05);
             transition: background-color 0.2s;
-            overflow-x: auto; /* 任务太多时允许横向滑动 */
+            overflow-x: auto; 
         }
         .fridge-layer:last-child { border-bottom: none; }
         .fridge-layer.drag-over { background-color: #f8f9fa; }
 
         .layer-badge {
-            position: absolute; right: 8px; top: 4px;
+            position: absolute;
+            right: 8px; top: 4px;
             font-size: 9px; color: var(--text-muted); 
             border: 1px solid var(--border-light); padding: 1px 4px; border-radius: 3px;
-            pointer-events: none; background: rgba(255,255,255,0.9);
+            pointer-events: none;
+            background: rgba(255,255,255,0.9);
             z-index: 2;
             white-space: nowrap;
         }
@@ -161,11 +163,35 @@
         }
         .empty-plates-container h4 { margin: 0 0 10px 0; font-weight: 500; font-size: 14px; color: var(--text-main); }
         .plates-shelf { display: flex; flex-wrap: wrap; gap: 12px; }
-        .chewed-food { font-size: 24px; position: relative; cursor: help; }
+        .chewed-food { font-size: 24px; position: relative; cursor: help; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
 
-        /* 食物组件（升级为专属自定义图片样式） */
+        /* 小垃圾桶拖动销毁容器 */
+        .trash-container {
+            background: #fff5f5;
+            border: 2px dashed #ffc9c9;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            color: #fa5252;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        .trash-container.drag-over {
+            background: #ffe3e3;
+            border-color: #fa5252;
+            transform: scale(1.02);
+        }
+        .trash-icon { font-size: 18px; }
+
+        /* 食物组件 */
         .food-container { 
-            display: flex; 
+            display: flex;
             flex-direction: column; 
             align-items: center; 
             position: relative;
@@ -173,7 +199,7 @@
             flex-shrink: 0;
         }
         .food-icon { 
-            width: 44px; 
+            width: 44px;
             height: 44px; 
             object-fit: contain; 
             cursor: grab; 
@@ -182,24 +208,33 @@
         }
         .food-icon:active { cursor: grabbing; }
         
-        .food-container[data-status="running"] .food-icon { animation: breathe 2s infinite alternate; }
+        /* 对于正在执行的任务，图标整体进行放大，并提升显示层级 */
+        .food-container[data-status="running"] {
+            z-index: 10;
+        }
+        .food-container[data-status="running"] .food-icon { 
+            animation: breathe 2s infinite alternate; 
+            transform: scale(1.22); /* 基础静止状态下放大1.22倍 */
+        }
         .food-container[data-status="paused"] { filter: grayscale(0.7) opacity(0.5); }
 
         .food-timer-tag {
-            font-size: 9px; background: #f1f3f5; color: var(--text-main);
-            padding: 1px 3px; border-radius: 3px; margin-top: 3px; font-family: monospace;
+            font-size: 9px;
+            background: #f1f3f5; color: var(--text-main);
+            padding: 1px 3px; border-radius: 3px; margin-top: 5px; font-family: monospace;
             border: 1px solid #dee2e6;
             white-space: nowrap;
         }
 
+        /* 放大状态下的呼吸效果 */
         @keyframes breathe {
-            from { transform: scale(1); }
-            to { transform: scale(1.12); }
+            from { transform: scale(1.22); }
+            to { transform: scale(1.35); }
         }
 
         /* 右侧文字清单 */
         .text-list-container {
-            width: 100%; 
+            width: 100%;
             background: white; 
             border-radius: 8px;
             border: 1px solid var(--fridge-border);
@@ -213,7 +248,8 @@
         .task-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
         
         .task-item {
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex;
+            align-items: center; justify-content: space-between;
             padding: 10px; margin-bottom: 8px; background: #ffffff;
             border-radius: 4px; border: 1px solid var(--border-light); transition: all 0.2s ease;
             gap: 10px;
@@ -228,7 +264,8 @@
         .task-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
         
         .btn-sm {
-            border: 1px solid #ced4da; padding: 5px 8px; border-radius: 3px;
+            border: 1px solid #ced4da;
+            padding: 5px 8px; border-radius: 3px;
             font-size: 12px; cursor: pointer; color: var(--text-main); background: #ffffff;
             white-space: nowrap;
         }
@@ -236,14 +273,26 @@
         .btn-start { background: #ffffff; border-color: #adb5bd; }
         .btn-finish { background: var(--btn-bg); color: #fff; border-color: var(--btn-bg); }
         .btn-reheat { background: #ffffff; border-color: #495057; font-weight: bold; }
+        
+        .btn-delete-x {
+            color: #fa5252 !important;
+            border-color: #ffc9c9 !important;
+            background: #fff5f5 !important;
+            font-weight: bold;
+        }
+        .btn-delete-x:hover {
+            background: #ffe3e3 !important;
+            border-color: #fa5252 !important;
+        }
 
         .live-timer { font-family: monospace; font-size: 11px; color: var(--text-main); }
 
         /* 遮罩图层 */
         .fridge-door, .microwave-screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center;
-            align-items: center; z-index: 10; text-align: center;
+            align-items: center; z-index: 15; text-align: center;
             padding: 15px; box-sizing: border-box;
             opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
             background: rgba(255, 255, 255, 0.96); color: var(--text-main);
@@ -252,14 +301,16 @@
         .microwave-screen.active { opacity: 1; pointer-events: auto; border: 2px solid var(--text-main); }
 
         .anchor-memo-box {
-            background: #f8f9fa; border: 1px solid #ced4da;
+            background: #f8f9fa;
+            border: 1px solid #ced4da;
             padding: 10px; border-radius: 4px; max-width: 90%; margin-top: 12px;
             color: var(--text-main); font-size: 13px;
         }
 
         /* 弹窗核心样式 */
         .modal-overlay {
-            position: fixed; top:0; left:0; width:100%; height:100%;
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
             background: rgba(0,0,0,0.4); display: none;
             justify-content: center; align-items: center; z-index: 100;
             padding: 15px; box-sizing: border-box;
@@ -268,16 +319,17 @@
         .modal h3 { margin-top: 0; font-weight: 500; font-size: 16px; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 8px;}
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-main);}
-        .form-group input type=["text"] { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;}
-        .form-group input type=["range"] { width: 100%; cursor: pointer; accent-color: #495057;}
+        .form-group input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;}
+        .form-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #495057;}
         
         .alex-text-desc {
-            background: #f8f9fa; border-left: 2px solid #6c757d;
+            background: #f8f9fa;
+            border-left: 2px solid #6c757d;
             padding: 8px; border-radius: 3px; font-size: 12px;
             color: var(--text-main); margin-top: 4px; min-height: 16px;
         }
 
-        /* 💻 电脑端适配 */
+        /* 电脑端适配 */
         @media (min-width: 800px) {
             body { padding: 20px; }
             h1 { font-size: 24px; }
@@ -285,9 +337,9 @@
             .btn { width: auto; }
             .debug-label { width: auto; }
             .workspace { flex-direction: row; gap: 30px; }
-            .fridge { height: 540px; }
+            .fridge { height: 680px; }
             .fridge-handle { height: 140px; top: 140px; }
-            .text-list-container { width: 420px; height: 645px; padding: 20px; }
+            .text-list-container { width: 420px; height: 885px; padding: 20px; }
             .task-item { padding: 12px; }
             .task-name-text { font-size: 14px; white-space: normal; overflow: visible; }
         }
@@ -307,16 +359,15 @@
 
     <div class="workspace">
         <div class="left-column">
+      
             <div class="fridge-container">
                 <div class="fridge" id="fridge">
-                    <!-- 遮罩1：冰箱门 -->
                     <div class="fridge-door" id="fridgeDoor">
                         <h3 style="font-size:16px; margin-bottom:5px;">静心准备中</h3>
                         <p style="max-width:90%; font-size:12px; color:var(--text-muted);">闭合外界干扰，调顺呼吸，准备好后进入专注状态...</p>
                         <div style="font-size: 36px; font-weight: 300; margin-top:10px;" id="meditationCountdown">30s</div>
                     </div>
 
-                    <!-- 遮罩2：微波炉 -->
                     <div class="microwave-screen" id="microwaveScreen">
                         <h3 style="font-size:16px; margin-bottom:5px;">正在重温接轨思维进度...</h3>
                         <p style="font-size:11px; color:var(--text-muted);">正在无缝同步上次的断点，请看提示：</p>
@@ -326,9 +377,8 @@
                         <div style="font-size: 32px; font-weight: 300; margin-top:10px;" id="reheatCountdown">5s</div>
                     </div>
 
-                    <!-- 四层晶莹搁板 -->
                     <div class="fridge-layer" data-layer="1" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">一层: 顶层冷冻 [优先极高]</span>
+                        <span class="layer-badge">一层: 顶层速冻 [优先极高]</span>
                     </div>
                     <div class="fridge-layer" data-layer="2" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
                         <span class="layer-badge">二层: 上层冷藏 [核心推进]</span>
@@ -339,27 +389,31 @@
                     <div class="fridge-layer" data-layer="4" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
                         <span class="layer-badge">四层: 底层保鲜 [低能挂机]</span>
                     </div>
+                    <div class="fridge-layer" data-layer="5" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" style="background-color: #f1f3f5; border-top: 3px dashed #ced4da;">
+                        <span class="layer-badge" style="color: #495057; background: rgba(233,236,239,0.95);">❄️ 底层冷冻室 [延期/未来任务]</span>
+                    </div>
                 </div>
                 <div class="fridge-handle"></div>
             </div>
 
-            <!-- 今日已饱食空盘区 -->
             <div class="empty-plates-container">
                 <h4>🍽️ 今日已饱食空盘区</h4>
                 <div class="plates-shelf" id="platesShelf">
                     <span style="color:#adb5bd; font-size:13px;" id="emptyPlatePlaceholder">暂无空盘，快去完成一项任务吧！</span>
                 </div>
             </div>
+
+            <div class="trash-container" id="trashZone" ondragover="allowDropTrash(event)" ondragleave="dragLeaveTrash(event)" ondrop="dropTrash(event)">
+                <span class="trash-icon">🗑️</span> 把不需要的食物拖到这里销毁（彻底删除任务）
+            </div>
         </div>
 
-        <!-- 清单 -->
         <div class="text-list-container">
             <h3>📋 任务文字清单 <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(已同步冰箱空间排序)</span></h3>
             <ul class="task-list" id="taskList"></ul>
         </div>
     </div>
 
-    <!-- 弹窗群 -->
     <div class="modal-overlay" id="taskModal">
         <div class="modal">
             <h3>🍎 拟定新的食物任务</h3>
@@ -377,9 +431,37 @@
                 <input type="range" id="paramUrgency" min="-5" max="5" value="0" oninput="updateRangeLabel(this)">
                 <div class="range-value" style="text-align:right; font-size:11px; color:var(--text-muted);">当前: <span>0</span>分</div>
             </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" id="isFrozenTask" onchange="toggleModalDateInput(this)" style="width: auto; margin: 0;"> ❄️ 放入冷冻室（延迟执行）
+                </label>
+                <div id="modalFreezeDateContainer" style="display:none; margin-top: 8px;">
+                    <label>选择未来解冻启动日期</label>
+                    <input type="date" id="modalFreezeDateInput" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;">
+                </div>
+            </div>
             <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn" style="background-color:#fff; color:var(--text-main); border-color:#ced4da; width:auto;" onclick="closeModal('taskModal')">取消</button>
                 <button class="btn" style="width:auto;" onclick="submitTask()">确认放入</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="freezeModal">
+        <div class="modal">
+            <h3>❄️ 打包冷冻（延后执行）</h3>
+            <p style="font-size: 13px; color: var(--text-main);">记录当前进度，并选择重新解冻的日期：</p>
+            <div class="form-group">
+                <label>你刚停留在哪里？待会回来第一步看什么？</label>
+                <input type="text" id="freezeAnchorInput" placeholder="例如：资料收集了一半，过几天再看..." autofocus>
+            </div>
+            <div class="form-group">
+                <label>选择解冻启动日期（当天凌晨0点自动恢复）</label>
+                <input type="date" id="freezeDateInput" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;">
+            </div>
+            <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn" style="background-color:#fff; color:var(--text-main); border-color:#ced4da; width:auto;" onclick="closeModal('freezeModal')">取消</button>
+                <button class="btn" style="width:auto;" onclick="submitFreeze()">确认冷冻</button>
             </div>
         </div>
     </div>
@@ -448,13 +530,12 @@
     </div>
 
     <script>
-        // 【已升级】引入你上传的 15 张自定义图片文件名
         const cleanImages = [
-            '菜心.png', '番茄.png', '鲑鱼(三文鱼).png', '胡萝卜.png', '花菜.png', 
+            '菜心.png', '番茄.png', '鮭鱼(三文鱼).png', '胡萝卜.png', '花菜.png', 
             '鸡蛋.png', '蘑菇.png', '牛排.png', '牛油果.png', '排骨.png', 
             '培根.png', '青菜.png', '豌豆.png', '虾仁.png', '鲜玉米.png'
         ];
-        
+  
         let tasks = [];
         let timerInterval = null;
         let currentTargetTaskId = null; 
@@ -467,10 +548,144 @@
         function updateRangeLabel(el) { el.nextElementSibling.querySelector('span').innerText = el.value; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         
+        function saveTasks() { localStorage.setItem('fridge_tasks', JSON.stringify(tasks)); }
+        function loadTasks() {
+            const stored = localStorage.getItem('fridge_tasks');
+            if (stored) { tasks = JSON.parse(stored); }
+        }
+
+        function getTodayDateString() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // ==================== 【新增强力通知逻辑群】 ====================
+        // 1. 申请通知权限
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        let flashIntervalId = null;
+        // 2. 集中下发后台跨标签页通知调度
+        function sendSystemNotification(title, content) {
+            // ① 触发高穿透代码音频蜂鸣（连响两声清脆嘀嘀）
+            playAlertSound();
+
+            // ② 如果标签页隐藏，触发标签栏“呼吸标题闪烁”
+            if (document.hidden) {
+                if (flashIntervalId) clearInterval(flashIntervalId);
+                const originalTitle = "任务冰箱";
+                let toggle = false;
+                flashIntervalId = setInterval(() => {
+                    document.title = toggle ? originalTitle : `【⏰ ${title}】`;
+                    toggle = !toggle;
+                }, 800);
+
+                // 用户一旦切回当前页面，立即掐断闪烁并恢复标题
+                const clearFlash = () => {
+                    clearInterval(flashIntervalId);
+                    document.title = originalTitle;
+                    window.removeEventListener('focus', clearFlash);
+                };
+                window.addEventListener('focus', clearFlash);
+            }
+
+            // ③ 触发原生系统桌面横幅（需HTTPS环境或localhost支持）
+            if ("Notification" in window && Notification.permission === "granted") {
+                try {
+                    new Notification(title, {
+                        body: content,
+                        icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">🧊</text></svg>'
+                    });
+                } catch (e) { console.log(e); }
+            }
+        }
+
+        // 3. 独立音频合成蜂鸣发生器（无需额外加载外部mp3文件）
+        function playAlertSound() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const audioCtx = new AudioContext();
+                
+                const triggerBeep = (delay) => {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime + delay); // D5 清脆高音
+                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime + delay);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.15); // 顺滑淡出
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.start(audioCtx.currentTime + delay);
+                    oscillator.stop(audioCtx.currentTime + delay + 0.15);
+                };
+                
+                triggerBeep(0);      // 第一声
+                triggerBeep(0.2);    // 第二声
+            } catch (e) { console.log(e); }
+        }
+        // =============================================================
+
+        function handleMidnightAndThawing() {
+            const todayStr = getTodayDateString();
+            const lastClearDate = localStorage.getItem('fridge_last_clear_date');
+            let needsRender = false; 
+            
+            if (lastClearDate && lastClearDate !== todayStr) {
+                tasks = tasks.filter(t => t.status !== 'finished');
+                localStorage.setItem('fridge_last_clear_date', todayStr);
+                needsRender = true; 
+            } else if (!lastClearDate) {
+                localStorage.setItem('fridge_last_clear_date', todayStr);
+            }
+
+            let thawedAny = false;
+            tasks.forEach(t => {
+                if (t.layer === 5 && t.targetDate) {
+                    if (t.targetDate <= todayStr) {
+                        let targetLayer = 4;
+                        if (t.score >= 5) targetLayer = 1;
+                        else if (t.score >= 0) targetLayer = 2;
+                        else if (t.score >= -5) targetLayer = 3;
+                        
+                        t.layer = targetLayer;
+                        t.targetDate = null;
+                        t.status = 'pending';
+                        thawedAny = true;
+                    }
+                }
+            });
+
+            if (thawedAny) {
+                reorderTasksByFridgeLayout();
+                needsRender = true; 
+            }
+
+            if (needsRender) {
+                saveTasks();
+                render();
+            }
+        }
+
+        function toggleModalDateInput(cb) {
+            document.getElementById('modalFreezeDateContainer').style.display = cb.checked ? 'block' : 'none';
+            if (cb.checked) {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                document.getElementById('modalFreezeDateInput').value = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+            }
+        }
+        
         function openAddTaskModal() {
             document.getElementById('taskName').value = '';
             document.getElementById('paramImportance').value = 0;
             document.getElementById('paramUrgency').value = 0;
+            document.getElementById('isFrozenTask').checked = false;
+            document.getElementById('modalFreezeDateContainer').style.display = 'none';
+            document.getElementById('modalFreezeDateInput').value = '';
             document.querySelectorAll('#taskModal .range-value span').forEach(s => s.innerText = '0');
             document.getElementById('taskModal').style.display = 'flex';
         }
@@ -483,21 +698,25 @@
             const urg = parseInt(document.getElementById('paramUrgency').value);
             const score = imp + urg;
 
+            const isFrozen = document.getElementById('isFrozenTask').checked;
+            const freezeDate = document.getElementById('modalFreezeDateInput').value;
+            if (isFrozen && !freezeDate) { alert('请选择解冻日期！'); return; }
+
             let layer = 4;
             if (score >= 5) layer = 1;
             else if (score >= 0) layer = 2;
             else if (score >= -5) layer = 3;
 
-            // 随机抽取图片
-            const randomImg = cleanImages[Math.floor(Math.random() * cleanImages.length)];
+            if (isFrozen) { layer = 5; }
 
+            const randomImg = cleanImages[Math.floor(Math.random() * cleanImages.length)];
             tasks.push({
                 id: Date.now().toString(),
                 name: name,
                 score: score,
                 layer: layer,
-                image: randomImg, // 存储图片文件名
-                status: 'pending', 
+                image: randomImg,
+                status: isFrozen ? 'paused' : 'pending', 
                 createTime: Date.now(),      
                 startTime: null,             
                 pauseTime: null,             
@@ -510,9 +729,9 @@
                 spoilAlerted: false,
                 pauseTimeoutAlerted: false,   
                 pendingTimeoutAlerted: false, 
-                anchorText: '' 
+                anchorText: isFrozen ? '设定在未来启用的冷冻任务' : '',
+                targetDate: isFrozen ? freezeDate : null
             });
-
             closeModal('taskModal');
             reorderTasksByFridgeLayout();
             startGlobalTimer(); 
@@ -520,24 +739,42 @@
         }
 
         function allowDrop(ev) { 
-            ev.preventDefault(); 
+            ev.preventDefault();
             let target = ev.target;
-            while (target && !target.classList.contains('fridge-layer')) {
-                target = target.parentElement;
-            }
+            while (target && !target.classList.contains('fridge-layer')) { target = target.parentElement; }
             if(target) target.classList.add('drag-over');
         }
 
         function dragLeave(ev) {
             let target = ev.target;
-            while (target && !target.classList.contains('fridge-layer')) {
-                target = target.parentElement;
-            }
+            while (target && !target.classList.contains('fridge-layer')) { target = target.parentElement; }
             if(target) target.classList.remove('drag-over');
         }
 
-        function drag(ev, id) { 
-            ev.dataTransfer.setData("text/plain", id); 
+        function drag(ev, id) { ev.dataTransfer.setData("text/plain", id); }
+
+        function allowDropTrash(ev) {
+            ev.preventDefault();
+            document.getElementById('trashZone').classList.add('drag-over');
+        }
+        function dragLeaveTrash(ev) {
+            document.getElementById('trashZone').classList.remove('drag-over');
+        }
+        function dropTrash(ev) {
+            ev.preventDefault();
+            document.getElementById('trashZone').classList.remove('drag-over');
+            const id = ev.dataTransfer.getData("text/plain");
+            triggerDirectDelete(id);
+        }
+
+        function triggerDirectDelete(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            if (confirm(`确定要彻底删除（销毁）任务「${task.name}」吗？`)) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveTasks();
+                render();
+            }
         }
 
         function drop(ev) {
@@ -547,15 +784,24 @@
             if (!task) return;
 
             let targetLayerEl = ev.target;
-            while (targetLayerEl && !targetLayerEl.classList.contains('fridge-layer')) {
-                targetLayerEl = targetLayerEl.parentElement;
-            }
+            while (targetLayerEl && !targetLayerEl.classList.contains('fridge-layer')) { targetLayerEl = targetLayerEl.parentElement; }
             if (!targetLayerEl) return;
             targetLayerEl.classList.remove('drag-over');
             
             const targetLayerNum = parseInt(targetLayerEl.getAttribute('data-layer'));
-            const currentLayerItems = [...targetLayerEl.querySelectorAll('.food-container')].filter(el => el.getAttribute('data-id') !== id);
             
+            if (targetLayerNum === 5) {
+                currentTargetTaskId = id;
+                openFreezeModal();
+                return;
+            }
+
+            if (task.layer === 5) {
+                task.targetDate = null;
+                if (task.status === 'running') task.status = 'paused';
+            }
+
+            const currentLayerItems = [...targetLayerEl.querySelectorAll('.food-container')].filter(el => el.getAttribute('data-id') !== id);
             let insertIndex = currentLayerItems.length;
             for (let i = 0; i < currentLayerItems.length; i++) {
                 const box = currentLayerItems[i].getBoundingClientRect();
@@ -570,9 +816,8 @@
 
             let targetLayerTasks = tasks.filter(t => t.layer === targetLayerNum && t.status !== 'finished');
             targetLayerTasks.splice(insertIndex, 0, task);
-
             let finalTasks = [];
-            for (let l = 1; l <= 4; l++) {
+            for (let l = 1; l <= 5; l++) {
                 if (l === targetLayerNum) {
                     finalTasks.push(...targetLayerTasks);
                 } else {
@@ -582,7 +827,39 @@
             finalTasks.push(...tasks.filter(t => t.status === 'finished'));
             tasks = finalTasks;
 
+            reorderTasksByFridgeLayout();
             render();
+        }
+
+        function openFreezeModal() {
+            document.getElementById('freezeAnchorInput').value = '';
+            const tom = new Date(); tom.setDate(tom.getDate() + 1);
+            document.getElementById('freezeDateInput').value = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`;
+            document.getElementById('freezeModal').style.display = 'flex';
+            setTimeout(() => document.getElementById('freezeAnchorInput').focus(), 150);
+        }
+
+        function submitFreeze() {
+            const text = document.getElementById('freezeAnchorInput').value.trim();
+            const dateVal = document.getElementById('freezeDateInput').value;
+            if (!dateVal) { alert('请选择重新解冻的日期！'); return; }
+
+            const task = tasks.find(t => t.id === currentTargetTaskId);
+            if (task) {
+                const now = Date.now();
+                if (task.status === 'running') {
+                    task.accumulatedSeconds += Math.floor((now - task.startTime) / 1000);
+                    task.seconds = task.accumulatedSeconds;
+                }
+                task.status = 'paused';
+                task.pauseTime = now;
+                task.layer = 5; 
+                task.anchorText = text || "未留存具体描述。";
+                task.targetDate = dateVal;
+                closeModal('freezeModal');
+                reorderTasksByFridgeLayout();
+                render();
+            }
         }
 
         function reorderTasksByFridgeLayout() {
@@ -590,8 +867,18 @@
             for(let l = 1; l <= 4; l++) {
                 ordered.push(...tasks.filter(t => t.layer === l && t.status !== 'finished'));
             }
+            
+            let layer5Tasks = tasks.filter(t => t.layer === 5 && t.status !== 'finished');
+            layer5Tasks.sort((a, b) => {
+                if (!a.targetDate) return 1;
+                if (!b.targetDate) return -1;
+                return a.targetDate.localeCompare(b.targetDate);
+            });
+            ordered.push(...layer5Tasks);
+            
             ordered.push(...tasks.filter(t => t.status === 'finished'));
             tasks = ordered;
+            saveTasks();
         }
 
         function initiateTaskLaunch(id) {
@@ -606,7 +893,6 @@
 
                 let timeLeft = 5;
                 document.getElementById('reheatCountdown').innerText = `${timeLeft}s`;
-
                 const reheatInterval = setInterval(() => {
                     timeLeft--;
                     document.getElementById('reheatCountdown').innerText = `${timeLeft}s`;
@@ -616,7 +902,6 @@
                         executeTaskActivation(id);
                     }
                 }, 1000);
-
             } else {
                 const door = document.getElementById('fridgeDoor');
                 const countdownEl = document.getElementById('meditationCountdown');
@@ -624,7 +909,6 @@
 
                 let timeLeft = 30;
                 countdownEl.innerText = `${timeLeft}s`;
-
                 const medInterval = setInterval(() => {
                     timeLeft--;
                     countdownEl.innerText = `${timeLeft}s`;
@@ -646,6 +930,7 @@
                 }
                 task.status = 'running';
                 task.startTime = now; 
+                saveTasks();
                 render();
             }
             startGlobalTimer();
@@ -659,30 +944,34 @@
         }
 
         function updateTimerCalculations() {
+            handleMidnightAndThawing(); 
             let hasActiveTasks = false;
             const now = Date.now();
             const isTestMode = document.getElementById('testMode').checked;
 
             tasks.forEach(t => {
                 if (t.status === 'finished') return;
-                hasActiveTasks = true;
+                if (t.layer === 5) return; 
 
+                hasActiveTasks = true;
                 if (t.status === 'running') {
                     t.seconds = t.accumulatedSeconds + Math.floor((now - t.startTime) / 1000);
-
                     if (t.seconds >= (isTestMode ? 5 : 3600) && !t.emotionChecked) {
                         t.emotionChecked = true;
                         popContextualEmotionModal();
+                        // 【新功能联动】发送系统通知盘点
+                        sendSystemNotification("🧠 状态与能量定时盘点", "系统已经为您加热了1小时任务，快来做个直觉评估吧！");
                     }
                     if (t.seconds >= (isTestMode ? 15 : 7200) && !t.spoilAlerted) {
                         t.spoilAlerted = true;
                         currentTargetTaskId = t.id;
                         document.getElementById('spoilModal').style.display = 'flex';
+                        // 【新功能联动】发送任务超载变质通知
+                        sendSystemNotification("⚠️ 任务加热已超2小时", `任务「${t.name}」连续执行太久容易脑过热，建议打包拆分休息一下。`);
                     }
                 } 
                 else if (t.status === 'paused') {
                     t.pausedSeconds = t.accumulatedPausedSeconds + Math.floor((now - t.pauseTime) / 1000);
-
                     if (t.pausedSeconds >= (isTestMode ? 10 : 7200) && !t.pauseTimeoutAlerted) {
                         t.pauseTimeoutAlerted = true;
                         triggerTimeoutPopup(`⚠️ 任务搁置超时`, `任务「${t.name}」已打包暂停超过 2 小时未继续。需要缓缓或者重新切分子步骤吗？`);
@@ -690,7 +979,6 @@
                 } 
                 else if (t.status === 'pending') {
                     t.pendingSeconds = Math.floor((now - t.createTime) / 1000);
-
                     if (t.pendingSeconds >= (isTestMode ? 35 : 25200) && !t.pendingTimeoutAlerted) {
                         t.pendingTimeoutAlerted = true;
                         triggerTimeoutPopup(`⏳ 任务久放未动`, `任务「${t.name}」已加入清单超过 7 小时还未开始烹饪。建议重新调配货架层级或直接开火。`);
@@ -705,11 +993,13 @@
             document.getElementById('timeoutTitle').innerText = title;
             document.getElementById('timeoutContent').innerText = content;
             document.getElementById('timeoutModal').style.display = 'flex';
+            // 【新功能联动】发散久放或打包超时系统提示
+            sendSystemNotification(title, content);
         }
 
         function updateLiveTimers() {
             tasks.forEach(t => {
-                if(t.status === 'finished') return;
+                if(t.status === 'finished' || t.layer === 5) return;
                 const hrs = Math.floor(t.seconds / 3600).toString().padStart(2, '0');
                 const mins = Math.floor((t.seconds % 3600) / 60).toString().padStart(2, '0');
                 const secs = (t.seconds % 60).toString().padStart(2, '0');
@@ -736,11 +1026,11 @@
                 const now = Date.now();
                 task.accumulatedSeconds += Math.floor((now - task.startTime) / 1000);
                 task.seconds = task.accumulatedSeconds;
-                
                 task.status = 'paused';
                 task.pauseTime = now; 
                 task.anchorText = text || "未留存具体描述。";
                 closeModal('anchorModal');
+                saveTasks();
                 render();
             }
         }
@@ -764,6 +1054,8 @@
                 const reason = (energy <= 3) ? "【提示】：当前能量处于低位红格。" : "【提示】：当前节奏可能过紧。";
                 document.getElementById('meditationReason').innerText = reason;
                 document.getElementById('deepMeditationModal').style.display = 'flex';
+                // 【新功能联动】短休建议后台轰炸提示
+                sendSystemNotification("🧘‍♀️ 状态调适温馨建议", "监测到你可能累了或崩得太紧，建议切回来闭眼短休5分钟调适！");
             }
         }
 
@@ -775,31 +1067,9 @@
                     task.seconds = task.accumulatedSeconds;
                 }
                 task.status = 'finished';
+                reorderTasksByFridgeLayout();
                 render();
-                appendPlateToDopamineZone(task);
             }
-        }
-
-        function appendPlateToDopamineZone(task) {
-            const placeholder = document.getElementById('emptyPlatePlaceholder');
-            if (placeholder) placeholder.remove();
-
-            const shelf = document.getElementById('platesShelf');
-            const plate = document.createElement('div');
-            plate.className = 'chewed-food';
-            plate.innerText = '🍽️'; 
-            
-            const hrs = Math.floor(task.seconds / 3600);
-            const mins = Math.floor((task.seconds % 3600) / 60);
-            plate.setAttribute('title', `已完成: ${task.name}\n耗时: ${hrs}小时${mins}分钟`);
-            
-            // 【已升级】空盘子右下角的迷你图标也同步变更为你的自定义食材图片
-            const miniFood = document.createElement('img');
-            miniFood.src = task.image;
-            miniFood.style.cssText = "width:14px; height:14px; object-fit:contain; position:absolute; bottom:-2px; right:-2px; background:white; border-radius:50%; padding:1px; border:1px solid #dee2e6;";
-            plate.appendChild(miniFood);
-            
-            shelf.appendChild(plate);
         }
 
         function render() {
@@ -808,9 +1078,31 @@
                 layer.innerHTML = '';
                 layer.appendChild(badge);
             });
-
             const taskListEl = document.getElementById('taskList');
             taskListEl.innerHTML = '';
+
+            const shelf = document.getElementById('platesShelf');
+            shelf.innerHTML = '';
+            const finishedTasks = tasks.filter(t => t.status === 'finished');
+            if (finishedTasks.length === 0) {
+                shelf.innerHTML = `<span style="color:#adb5bd; font-size:13px;" id="emptyPlatePlaceholder">暂无空盘，快去完成一项任务吧！</span>`;
+            } else {
+                finishedTasks.forEach(task => {
+                    const plate = document.createElement('div');
+                    plate.className = 'chewed-food';
+                    plate.innerText = '🍽️';
+                    const hrs = Math.floor(task.seconds / 3600);
+                    const mins = Math.floor((task.seconds % 3600) / 60);
+                    plate.setAttribute('title', `已完成: ${task.name}\n耗时: ${hrs}小时${mins}分钟`);
+                    
+                    const miniFood = document.createElement('img');
+                    miniFood.src = task.image;
+                    miniFood.style.cssText = "width:14px; height:14px; object-fit:contain; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:50%; padding:1px; border:1px solid #dee2e6;";
+                    
+                    plate.appendChild(miniFood);
+                    shelf.appendChild(plate);
+                });
+            }
 
             tasks.forEach(task => {
                 if (task.status === 'finished') return;
@@ -820,7 +1112,10 @@
                 foodContainer.setAttribute('data-status', task.status);
                 foodContainer.setAttribute('data-id', task.id); 
 
-                // 【已升级】冰箱里渲染的图标变更为 <img> 标签
+                if (task.layer === 5) {
+                    foodContainer.setAttribute('title', `食物任务：${task.name}\n🧊 计划解冻日期：${task.targetDate || '未定'}`);
+                }
+
                 const foodEl = document.createElement('img');
                 foodEl.className = 'food-icon';
                 foodEl.src = task.image;
@@ -828,7 +1123,7 @@
                 foodEl.addEventListener('dragstart', (e) => drag(e, task.id));
                 foodContainer.appendChild(foodEl);
 
-                if (task.status === 'running' || task.status === 'paused') {
+                if ((task.status === 'running' || task.status === 'paused') && task.layer !== 5) {
                     const timerTag = document.createElement('div');
                     timerTag.className = 'food-timer-tag';
                     timerTag.id = `time-fridge-${task.id}`;
@@ -841,10 +1136,19 @@
                         timerTag.innerText = '⏸️ ' + timerTag.innerText;
                     }
                     foodContainer.appendChild(timerTag);
+                } else if (task.layer === 5 && task.targetDate) {
+                    const dateTag = document.createElement('div');
+                    dateTag.className = 'food-timer-tag';
+                    dateTag.style.background = '#e6f7ff';
+                    dateTag.style.borderColor = '#91d5ff';
+                    dateTag.innerText = '❄️' + task.targetDate.substring(5);
+                    foodContainer.appendChild(dateTag);
                 }
                 
                 const targetLayer = document.querySelector(`.fridge-layer[data-layer="${task.layer}"]`);
                 if (targetLayer) targetLayer.appendChild(foodContainer);
+
+                if (task.layer === 5) return;
 
                 const itemEl = document.createElement('li');
                 itemEl.className = 'task-item';
@@ -852,14 +1156,20 @@
 
                 let actionHtml = '';
                 if (task.status === 'pending') {
-                    actionHtml = `<button class="btn-sm btn-start" onclick="initiateTaskLaunch('${task.id}')">开火烹饪</button>`;
+                    actionHtml = `
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <button class="btn-sm btn-start" onclick="initiateTaskLaunch('${task.id}')">开火烹饪</button>
+                            <button class="btn-sm btn-delete-x" onclick="triggerDirectDelete('${task.id}')" title="删除任务">×</button>
+                        </div>
+                    `;
                 } else if (task.status === 'running') {
                     actionHtml = `
                         <div class="task-actions">
                             <span class="live-timer" id="time-text-${task.id}">00:00:00</span>
-                            <div style="display:flex; gap:4px;">
+                            <div style="display:flex; gap:4px; align-items:center;">
                                 <button class="btn-sm btn-pause" onclick="requestTaskPause('${task.id}')">🥡 打包</button>
                                 <button class="btn-sm btn-finish" onclick="finaliseTaskEaten('${task.id}')">完成</button>
+                                <button class="btn-sm btn-delete-x" onclick="triggerDirectDelete('${task.id}')" title="删除任务">×</button>
                             </div>
                         </div>
                     `;
@@ -867,12 +1177,14 @@
                     actionHtml = `
                         <div class="task-actions">
                             <span class="live-timer" style="color:var(--text-muted);" id="time-text-${task.id}">已暂停</span>
-                            <button class="btn-sm btn-reheat" onclick="initiateTaskLaunch('${task.id}')">♨️ 恢复</button>
+                            <div style="display:flex; gap:4px; align-items:center;">
+                                <button class="btn-sm btn-reheat" onclick="initiateTaskLaunch('${task.id}')">♨️ 恢复</button>
+                                <button class="btn-sm btn-delete-x" onclick="triggerDirectDelete('${task.id}')" title="删除任务">×</button>
+                            </div>
                         </div>
                     `;
                 }
 
-                // 【已升级】文字列表左侧的图标也一并变更为你好看的自定义 <img>
                 itemEl.innerHTML = `
                     <div class="task-info">
                         <img src="${task.image}" style="width:24px; height:24px; object-fit:contain; flex-shrink:0; border-radius: 4px;">
@@ -888,9 +1200,19 @@
             updateLiveTimers();
         }
 
+        window.onload = function() {
+            loadTasks();
+            handleMidnightAndThawing();
+            reorderTasksByFridgeLayout();
+            render();
+            startGlobalTimer();
+            // 【新增触发】页面开机时请求允许系统通知
+            requestNotificationPermission();
+        };
+
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                updateTimerCalculations();
+                handleMidnightAndThawing();
                 render();
             }
         });
