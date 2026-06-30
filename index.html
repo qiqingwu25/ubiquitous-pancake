@@ -97,7 +97,7 @@
         }
 
         .fridge {
-            height: 640px; 
+            height: 640px;
             background-color: var(--fridge-bg);
             border: 10px solid var(--fridge-shell);
             border-top-width: 15px;
@@ -136,7 +136,7 @@
             background-color: var(--layer-bg);
             box-shadow: inset 0 -3px 3px -3px rgba(0,0,0,0.05);
             transition: background-color 0.2s;
-            overflow-x: auto; 
+            overflow-x: auto;
         }
         .fridge-layer:last-child { border-bottom: none; }
         .fridge-layer.drag-over { background-color: #f8f9fa; }
@@ -208,13 +208,10 @@
         }
         .food-icon:active { cursor: grabbing; }
         
-        /* 对于正在执行的任务，图标整体进行放大，并提升显示层级 */
-        .food-container[data-status="running"] {
-            z-index: 10;
-        }
+        .food-container[data-status="running"] { z-index: 10; }
         .food-container[data-status="running"] .food-icon { 
-            animation: breathe 2s infinite alternate; 
-            transform: scale(1.22); /* 基础静止状态下放大1.22倍 */
+            animation: breathe 2s infinite alternate;
+            transform: scale(1.22); 
         }
         .food-container[data-status="paused"] { filter: grayscale(0.7) opacity(0.5); }
 
@@ -226,7 +223,6 @@
             white-space: nowrap;
         }
 
-        /* 放大状态下的呼吸效果 */
         @keyframes breathe {
             from { transform: scale(1.22); }
             to { transform: scale(1.35); }
@@ -317,7 +313,7 @@
         }
         .modal { background: white; padding: 20px; border-radius: 6px; width: 100%; max-width: 360px; border: 1px solid var(--fridge-border); box-sizing: border-box;}
         .modal h3 { margin-top: 0; font-weight: 500; font-size: 16px; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 8px;}
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px;}
         .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-main);}
         .form-group input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;}
         .form-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #495057;}
@@ -329,7 +325,20 @@
             color: var(--text-main); margin-top: 4px; min-height: 16px;
         }
 
-        /* 电脑端适配 */
+        /* 底端传输控制面板自适应 */
+        .bottom-sync-controls {
+            margin-top: 35px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column; /* 手机端默认：上下堆叠垂直排列 */
+            gap: 10px;
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
+            justify-content: center;
+        }
+
+        /* 电脑端与平板端适配 */
         @media (min-width: 800px) {
             body { padding: 20px; }
             h1 { font-size: 24px; }
@@ -342,6 +351,9 @@
             .text-list-container { width: 420px; height: 885px; padding: 20px; }
             .task-item { padding: 12px; }
             .task-name-text { font-size: 14px; white-space: normal; overflow: visible; }
+            
+            /* 电脑端：底端控制面板变为横向并排 */
+            .bottom-sync-controls { flex-direction: row; gap: 15px; }
         }
     </style>
 </head>
@@ -351,7 +363,7 @@
     <div class="sub-title">让工作任务像食物一样方便存储、保鲜与消化</div>
     
     <div class="controls">
-        <button class="btn" onclick="openAddTaskModal()">+ 放入新食物（创建任务）</button>
+        <button class="btn" style="white-space: nowrap; width: auto; min-width: 240px; font-weight: 500;" onclick="openAddTaskModal()">+ 放入新食物（创建任务）</button>
         <label class="debug-label">
             <input type="checkbox" id="testMode" checked> 💡 开启加速调试模式（1小时压缩为5秒）
         </label>
@@ -359,7 +371,6 @@
 
     <div class="workspace">
         <div class="left-column">
-      
             <div class="fridge-container">
                 <div class="fridge" id="fridge">
                     <div class="fridge-door" id="fridgeDoor">
@@ -412,6 +423,11 @@
             <h3>📋 任务文字清单 <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(已同步冰箱空间排序)</span></h3>
             <ul class="task-list" id="taskList"></ul>
         </div>
+    </div>
+
+    <div class="bottom-sync-controls">
+        <button class="btn" style="background-color: #2b6cb0; border-color: #2b6cb0; font-size: 13px; white-space: nowrap;" onclick="exportSyncData()">📤 复制当前数据文本 (电脑端)</button>
+        <button class="btn" style="background-color: #2f855a; border-color: #2f855a; font-size: 13px; white-space: nowrap;" onclick="importSyncData()">📥 导入同步数据文本 (手机端)</button>
     </div>
 
     <div class="modal-overlay" id="taskModal">
@@ -554,13 +570,55 @@
             if (stored) { tasks = JSON.parse(stored); }
         }
 
+        // ==================== 【跨端数据传输同步逻辑】 ====================
+        function exportSyncData() {
+            if (!tasks || tasks.length === 0) {
+                alert("🧊 当前冰箱内没有任何任务数据，无需导出！");
+                return;
+            }
+            try {
+                const jsonStr = JSON.stringify(tasks);
+                const encodedData = btoa(encodeURIComponent(jsonStr));
+                
+                navigator.clipboard.writeText(encodedData).then(() => {
+                    alert("📋【第一步成功】当前冰箱数据已成功压缩并复制到剪贴板！\n\n👉【第二步】：请打开电脑 Edge 右侧栏的「Drop」(随手传) 功能，把刚刚复制的内容粘贴发送过去。\n👉【第三步】：在手机端 Edge 的 Drop 中就能同步看到，全选复制它，再回到手机网页点击「导入」即可！");
+                }).catch(err => {
+                    prompt("自动复制受限，请手动全选并复制下方框内的加密文本：", encodedData);
+                });
+            } catch (e) {
+                alert("❌ 导出失败：" + e.message);
+            }
+        }
+
+        function importSyncData() {
+            const encodedData = prompt("📥 请粘贴您从电脑端 Edge Drop 中发送并复制过来的加密数据文本：");
+            if (!encodedData) return;
+            
+            try {
+                const decodedStr = decodeURIComponent(atob(encodedData.trim()));
+                const importedTasks = JSON.parse(decodedStr);
+                
+                if (Array.isArray(importedTasks)) {
+                    if (confirm(`🔍 解析成功！检测到共 ${importedTasks.length} 项冰箱任务。\n\n⚠️ 警告：导入操作将全面替换并覆盖当前手机上的旧数据！确定要同步吗？`)) {
+                        tasks = importedTasks;
+                        saveTasks(); 
+                        render();    
+                        alert("✨【同步成功】手机端冰箱已同步为与电脑端完全一致的页面与进度！");
+                    }
+                } else {
+                    alert("❌ 导入失败：解析后的数据格式不匹配，请确保复制了完整的文本。");
+                }
+            } catch (e) {
+                alert("❌ 导入失败：文本读取错误，请检查是否在 Drop 传输或复制中漏掉了字符。");
+            }
+        }
+
         function getTodayDateString() {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
 
-        // ==================== 【新增强力通知逻辑群】 ====================
-        // 1. 申请通知权限
+        // ==================== 【通知及音频群】 ====================
         function requestNotificationPermission() {
             if ("Notification" in window && Notification.permission === "default") {
                 Notification.requestPermission();
@@ -568,12 +626,8 @@
         }
 
         let flashIntervalId = null;
-        // 2. 集中下发后台跨标签页通知调度
         function sendSystemNotification(title, content) {
-            // ① 触发高穿透代码音频蜂鸣（连响两声清脆嘀嘀）
             playAlertSound();
-
-            // ② 如果标签页隐藏，触发标签栏“呼吸标题闪烁”
             if (document.hidden) {
                 if (flashIntervalId) clearInterval(flashIntervalId);
                 const originalTitle = "任务冰箱";
@@ -582,8 +636,6 @@
                     document.title = toggle ? originalTitle : `【⏰ ${title}】`;
                     toggle = !toggle;
                 }, 800);
-
-                // 用户一旦切回当前页面，立即掐断闪烁并恢复标题
                 const clearFlash = () => {
                     clearInterval(flashIntervalId);
                     document.title = originalTitle;
@@ -592,7 +644,6 @@
                 window.addEventListener('focus', clearFlash);
             }
 
-            // ③ 触发原生系统桌面横幅（需HTTPS环境或localhost支持）
             if ("Notification" in window && Notification.permission === "granted") {
                 try {
                     new Notification(title, {
@@ -603,31 +654,27 @@
             }
         }
 
-        // 3. 独立音频合成蜂鸣发生器（无需额外加载外部mp3文件）
         function playAlertSound() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (!AudioContext) return;
                 const audioCtx = new AudioContext();
-                
                 const triggerBeep = (delay) => {
                     const oscillator = audioCtx.createOscillator();
                     const gainNode = audioCtx.createGain();
                     oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime + delay); // D5 清脆高音
+                    oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime + delay);
                     gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime + delay);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.15); // 顺滑淡出
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.15);
                     oscillator.connect(gainNode);
                     gainNode.connect(audioCtx.destination);
                     oscillator.start(audioCtx.currentTime + delay);
                     oscillator.stop(audioCtx.currentTime + delay + 0.15);
                 };
-                
-                triggerBeep(0);      // 第一声
-                triggerBeep(0.2);    // 第二声
+                triggerBeep(0);
+                triggerBeep(0.2);
             } catch (e) { console.log(e); }
         }
-        // =============================================================
 
         function handleMidnightAndThawing() {
             const todayStr = getTodayDateString();
@@ -658,7 +705,6 @@
                     }
                 }
             });
-
             if (thawedAny) {
                 reorderTasksByFridgeLayout();
                 needsRender = true; 
@@ -944,11 +990,10 @@
         }
 
         function updateTimerCalculations() {
-            handleMidnightAndThawing(); 
+            handleMidnightAndThawing();
             let hasActiveTasks = false;
             const now = Date.now();
             const isTestMode = document.getElementById('testMode').checked;
-
             tasks.forEach(t => {
                 if (t.status === 'finished') return;
                 if (t.layer === 5) return; 
@@ -959,14 +1004,12 @@
                     if (t.seconds >= (isTestMode ? 5 : 3600) && !t.emotionChecked) {
                         t.emotionChecked = true;
                         popContextualEmotionModal();
-                        // 【新功能联动】发送系统通知盘点
                         sendSystemNotification("🧠 状态与能量定时盘点", "系统已经为您加热了1小时任务，快来做个直觉评估吧！");
                     }
                     if (t.seconds >= (isTestMode ? 15 : 7200) && !t.spoilAlerted) {
                         t.spoilAlerted = true;
                         currentTargetTaskId = t.id;
                         document.getElementById('spoilModal').style.display = 'flex';
-                        // 【新功能联动】发送任务超载变质通知
                         sendSystemNotification("⚠️ 任务加热已超2小时", `任务「${t.name}」连续执行太久容易脑过热，建议打包拆分休息一下。`);
                     }
                 } 
@@ -993,7 +1036,6 @@
             document.getElementById('timeoutTitle').innerText = title;
             document.getElementById('timeoutContent').innerText = content;
             document.getElementById('timeoutModal').style.display = 'flex';
-            // 【新功能联动】发散久放或打包超时系统提示
             sendSystemNotification(title, content);
         }
 
@@ -1054,7 +1096,6 @@
                 const reason = (energy <= 3) ? "【提示】：当前能量处于低位红格。" : "【提示】：当前节奏可能过紧。";
                 document.getElementById('meditationReason').innerText = reason;
                 document.getElementById('deepMeditationModal').style.display = 'flex';
-                // 【新功能联动】短休建议后台轰炸提示
                 sendSystemNotification("🧘‍♀️ 状态调适温馨建议", "监测到你可能累了或崩得太紧，建议切回来闭眼短休5分钟调适！");
             }
         }
@@ -1091,6 +1132,7 @@
                     const plate = document.createElement('div');
                     plate.className = 'chewed-food';
                     plate.innerText = '🍽️';
+            
                     const hrs = Math.floor(task.seconds / 3600);
                     const mins = Math.floor((task.seconds % 3600) / 60);
                     plate.setAttribute('title', `已完成: ${task.name}\n耗时: ${hrs}小时${mins}分钟`);
@@ -1153,7 +1195,6 @@
                 const itemEl = document.createElement('li');
                 itemEl.className = 'task-item';
                 itemEl.setAttribute('data-status', task.status);
-
                 let actionHtml = '';
                 if (task.status === 'pending') {
                     actionHtml = `
@@ -1206,10 +1247,8 @@
             reorderTasksByFridgeLayout();
             render();
             startGlobalTimer();
-            // 【新增触发】页面开机时请求允许系统通知
             requestNotificationPermission();
         };
-
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 handleMidnightAndThawing();
