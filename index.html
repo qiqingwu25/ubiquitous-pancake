@@ -3,1258 +3,1301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>任务冰箱</title>
+    <title>任务厨房</title>
     <style>
+        /* ==================== 1. 全局变量与全屏自适应 ==================== */
         :root {
-            --fridge-bg: #ffffff;
-            --fridge-shell: #e9ecef; /* 冰箱外壳银灰色 */
-            --fridge-border: #ced4da;
-            --layer-bg: #ffffff;
-            --text-main: #212529;
-            --text-muted: #868e96;
-            --border-light: #e9ecef;
-            --btn-bg: #495057;
+            --color-blue: #0065ff;     
+            --color-dark: #0f172a;     
+            --color-light: #f4f7fc;    
+            --color-white: #ffffff;    
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, button, input, select, textarea, span, div, p {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #fdfdfd;
-            color: var(--text-main);
-            margin: 0;
-            padding: 15px;
+            background-color: var(--color-light);
+            color: var(--color-dark);
+            height: 100vh;
+            overflow: hidden; 
+            padding: 16px; 
             display: flex;
             flex-direction: column;
-            align-items: center;
+            gap: 16px; 
+            user-select: none;
         }
 
-        h1 { color: var(--text-main); font-weight: 400; margin-bottom: 5px; font-size: 22px; text-align: center; }
-        .sub-title { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; text-align: center; line-height: 1.4; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: var(--color-light); }
+        ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.2); border-radius: 99px; }
 
-        .controls { 
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            max-width: 420px;
+        /* ==================== 2. 基础元素与头部 ==================== */
+        header h1 {
+            font-size: 30px; 
+            font-weight: 700 !important; 
+            line-height: 1.2;
+            color: var(--color-dark);
+        }
+
+        .sub-title {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 6px; 
+        }
+
+        h3, h4, .layer-badge { font-weight: 500 !important; }
+
+        .btn, .btn-sm, .list-row, .food-item-container, .form-item input, .btn-delete-circle {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                        box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                        background-color 0.15s ease, 
+                        border-color 0.15s ease;
         }
 
         .btn {
-            background-color: var(--btn-bg);
-            color: white;
-            border: 1px solid var(--btn-bg);
-            padding: 10px 18px;
-            font-size: 14px;
-            border-radius: 4px;
+            background-color: var(--color-blue);
+            color: var(--color-white);
+            border: 1px solid var(--color-blue);
+            padding: 8px 16px; 
+            font-size: 13px;
+            font-weight: 500 !important; 
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.15s ease;
-            width: 100%;
-            box-sizing: border-box;
-            text-align: center;
+            white-space: nowrap;
         }
-        .btn:hover { background-color: #212529; border-color: #212529; }
+        .btn:hover {
+            transform: translateY(-1px) scale(1.02); 
+            box-shadow: 0 4px 12px rgba(0, 101, 255, 0.25); 
+        }
+        .btn:active { transform: scale(0.98); }
+
+        .btn-secondary {
+            background-color: var(--color-white);
+            color: var(--color-dark);
+            border: 1px solid rgba(15, 23, 42, 0.15);
+        }
+        .btn-secondary:hover {
+            background-color: var(--color-light);
+            border-color: var(--color-dark);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-shrink: 0;
+            padding-bottom: 4px;
+        }
+
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 16px; 
+            margin-top: 4px;
+        }
 
         .debug-label {
             font-size: 11px;
-            color: var(--text-muted); 
-            background: #f1f3f5; 
-            padding: 6px 12px; 
-            border-radius: 4px;
-            width: 100%;
-            box-sizing: border-box;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 5px;
+            gap: 8px; 
+            cursor: pointer;
+            opacity: 0.8;
         }
+        .debug-label input { accent-color: var(--color-blue); }
 
-        /* 主布局 */
-        .workspace {
-            display: flex;
-            flex-direction: column; 
-            gap: 25px;
-            width: 100%;
-            max-width: 1100px;
-            box-sizing: border-box;
-        }
-
-        .left-column {
+        /* ==================== 3. 大框架布局 ==================== */
+        .main-workspace {
             flex: 1;
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            gap: 16px; 
+            min-height: 0; 
             width: 100%;
-            box-sizing: border-box;
         }
 
-        /* 拟物化极简冰箱外壳 */
-        .fridge-container {
-            position: relative;
-            padding-right: 10px; 
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .fridge {
-            height: 640px;
-            background-color: var(--fridge-bg);
-            border: 10px solid var(--fridge-shell);
-            border-top-width: 15px;
-            border-bottom-width: 15px;
-            border-radius: 12px;
-            position: relative;
+        .left-panel {
+            flex: 0 0 50%; 
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04), inset 0 0 15px rgba(0,0,0,0.02);
+            gap: 16px; 
+            min-height: 0;
+        }
+
+        .right-panel {
+            flex: 1; 
+            background-color: var(--color-white);
+            border-radius: 8px;
+            padding: 16px; 
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            flex-shrink: 0;
+            min-height: 0;
+            border: 1px solid rgba(15, 23, 42, 0.05);
+        }
+        .right-panel h3 {
+            font-size: 13px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--color-light);
+        }
+
+        /* ==================== 4. 拟物化冰箱架结构 ==================== */
+        .fridge-shell {
+            flex: 1;
+            background-color: var(--color-white);
+            border: 8px solid var(--color-light); 
+            outline: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 12px;
+            box-shadow: inset 0 0 16px rgba(15, 23, 42, 0.01), 0 4px 24px rgba(15, 23, 42, 0.03);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-height: 0;
             overflow: hidden;
-            box-sizing: border-box;
         }
 
-        /* 极简冰箱把手 */
-        .fridge-handle {
-            position: absolute;
-            right: 0;
-            top: 130px;
-            width: 8px;
-            height: 120px;
-            background: #adb5bd;
-            border-radius: 0 4px 4px 0;
-            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-        }
-
-        /* 晶莹玻璃搁板层 */
         .fridge-layer {
             flex: 1;
-            border-bottom: 5px solid #dee2e6;
+            border-bottom: 2px solid var(--color-light);
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            padding: 10px 12px;
-            gap: 15px;
+            padding: 6px 16px; 
+            gap: 14px; 
             position: relative;
-            background-color: var(--layer-bg);
-            box-shadow: inset 0 -3px 3px -3px rgba(0,0,0,0.05);
-            transition: background-color 0.2s;
+            background-color: var(--color-white);
             overflow-x: auto;
+            overflow-y: hidden;
+            min-height: 0; 
+            transition: background-color 0.2s ease;
         }
-        .fridge-layer:last-child { border-bottom: none; }
-        .fridge-layer.drag-over { background-color: #f8f9fa; }
+        .fridge-layer.drag-over {
+            background-color: rgba(0, 101, 255, 0.03) !important;
+        }
+
+        /* 第五层冷冻室画面的冰蓝感高级质感 */
+        .fridge-layer[data-layer="5"] {
+            background: rgba(224, 242, 254, 0.6) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: none;
+        }
 
         .layer-badge {
             position: absolute;
-            right: 8px; top: 4px;
-            font-size: 9px; color: var(--text-muted); 
-            border: 1px solid var(--border-light); padding: 1px 4px; border-radius: 3px;
+            right: 8px; 
+            top: 6px; 
+            font-size: 9px;
+            color: var(--color-dark);
+            opacity: 0.4;
+            border: 1px solid rgba(15, 23, 42, 0.1);
+            padding: 1px 6px;
+            border-radius: 4px;
+            background-color: var(--color-white);
             pointer-events: none;
-            background: rgba(255,255,255,0.9);
-            z-index: 2;
             white-space: nowrap;
+            z-index: 10;
         }
 
-        /* 今日已饱食空盘区 */
-        .empty-plates-container {
-            background: #ffffff;
-            border: 1px solid var(--fridge-border);
+        .eaten-zone {
+            height: 90px;
+            background-color: var(--color-white);
             border-radius: 8px;
-            padding: 15px;
-            min-height: 80px;
-            box-sizing: border-box;
+            padding: 10px 16px; 
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            border: 1px solid rgba(15, 23, 42, 0.05);
         }
-        .empty-plates-container h4 { margin: 0 0 10px 0; font-weight: 500; font-size: 14px; color: var(--text-main); }
-        .plates-shelf { display: flex; flex-wrap: wrap; gap: 12px; }
-        .chewed-food { font-size: 24px; position: relative; cursor: help; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+        .eaten-zone h4 { font-size: 11px; opacity: 0.6; }
+        
+        .plates-shelf {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding-top: 8px; 
+            overflow-y: auto;
+            flex: 1;
+        }
 
-        /* 小垃圾桶拖动销毁容器 */
-        .trash-container {
-            background: #fff5f5;
-            border: 2px dashed #ffc9c9;
+        /* 右侧列表下方销毁区 */
+        .trash-bin {
+            height: 52px;
+            border: 2px dashed rgba(15, 23, 42, 0.15);
+            background-color: var(--color-light);
             border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            color: #fa5252;
-            font-size: 13px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-            user-select: none;
-        }
-        .trash-container.drag-over {
-            background: #ffe3e3;
-            border-color: #fa5252;
-            transform: scale(1.02);
-        }
-        .trash-icon { font-size: 18px; }
-
-        /* 食物组件 */
-        .food-container { 
-            display: flex;
-            flex-direction: column; 
-            align-items: center; 
-            position: relative;
-            transition: transform 0.15s ease;
+            font-size: 11px;
+            color: rgba(15, 23, 42, 0.6);
             flex-shrink: 0;
+            margin-top: 4px;
         }
-        .food-icon { 
-            width: 44px;
-            height: 44px; 
-            object-fit: contain; 
-            cursor: grab; 
-            transition: transform 0.15s; 
-            user-select: none;
-        }
-        .food-icon:active { cursor: grabbing; }
-        
-        .food-container[data-status="running"] { z-index: 10; }
-        .food-container[data-status="running"] .food-icon { 
-            animation: breathe 2s infinite alternate;
-            transform: scale(1.22); 
-        }
-        .food-container[data-status="paused"] { filter: grayscale(0.7) opacity(0.5); }
-
-        .food-timer-tag {
-            font-size: 9px;
-            background: #f1f3f5; color: var(--text-main);
-            padding: 1px 3px; border-radius: 3px; margin-top: 5px; font-family: monospace;
-            border: 1px solid #dee2e6;
-            white-space: nowrap;
+        .trash-bin.drag-over {
+            background-color: rgba(239, 68, 68, 0.05);
+            border-color: #ef4444;
+            color: #ef4444;
         }
 
-        @keyframes breathe {
-            from { transform: scale(1.22); }
-            to { transform: scale(1.35); }
-        }
-
-        /* 右侧文字清单 */
-        .text-list-container {
-            width: 100%;
-            background: white; 
-            border-radius: 8px;
-            border: 1px solid var(--fridge-border);
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            height: 450px;
-            box-sizing: border-box;
-        }
-        .text-list-container h3 { font-weight: 500; font-size: 15px; margin-top: 0; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
-        .task-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
-        
-        .task-item {
+        .task-list-ul {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
             display: flex;
-            align-items: center; justify-content: space-between;
-            padding: 10px; margin-bottom: 8px; background: #ffffff;
-            border-radius: 4px; border: 1px solid var(--border-light); transition: all 0.2s ease;
-            gap: 10px;
+            flex-direction: column;
+            gap: 8px; 
         }
-        .task-item[data-status="running"] { border-left: 3px solid #495057; background: #fdfdfd; }
-        .task-item[data-status="paused"] { background: #f8f9fa; color: var(--text-muted); }
 
-        .task-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-        .task-info div { min-width: 0; overflow: hidden; }
-        .task-name-text { font-weight: 400; font-size: 13px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* ==================== 5. 拟物图标组件 ==================== */
+        .food-item-container {
+            width: 56px;  
+            height: 64px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; 
+            position: relative;
+            cursor: grab;
+            flex-shrink: 0;
+            overflow: visible; 
+        }
+        .food-item-container:active { cursor: grabbing; }
         
-        .task-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+        .food-img {
+            width: 30px; 
+            height: 30px;
+            object-fit: contain;
+            margin-bottom: 2px; 
+        }
         
-        .btn-sm {
-            border: 1px solid #ced4da;
-            padding: 5px 8px; border-radius: 3px;
-            font-size: 12px; cursor: pointer; color: var(--text-main); background: #ffffff;
+        .food-item-container[data-status="running"] .food-img {
+            animation: foodControlledBreathe 2s infinite alternate ease-in-out;
+        }
+        .food-item-container[data-status="paused"] {
+            filter: grayscale(0.8) opacity(0.35);
+        }
+
+        @keyframes foodControlledBreathe {
+            from { transform: scale(1.0); }
+            to { transform: scale(1.12); } 
+        }
+
+        .food-countdown-tag {
+            font-size: 9px; 
+            background-color: var(--color-dark);
+            color: var(--color-white);
+            padding: 1px 4px; 
+            border-radius: 3px;
             white-space: nowrap;
+            z-index: 5;
+            line-height: 1.1;
+            transform: scale(0.95); 
         }
-        .btn-sm:hover { background: #f1f3f5; }
-        .btn-start { background: #ffffff; border-color: #adb5bd; }
-        .btn-finish { background: var(--btn-bg); color: #fff; border-color: var(--btn-bg); }
-        .btn-reheat { background: #ffffff; border-color: #495057; font-weight: bold; }
+        .food-item-container[data-status="running"] .food-countdown-tag {
+            background-color: var(--color-blue);
+        }
+
+        .plate-container {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: var(--color-light);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .plate-check {
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            background-color: var(--color-blue);
+            color: var(--color-white);
+            font-size: 8px;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        /* ==================== 6. 清单单行 ==================== */
+        .list-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background-color: var(--color-light);
+            border-radius: 6px;
+            gap: 8px; 
+            border: 2px solid transparent; 
+        }
+        .list-row:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+        }
+        .list-row[data-status="running"] {
+            background-color: var(--color-white);
+            border-color: transparent;
+            box-shadow: inset 0 0 0 2px var(--color-blue); 
+        }
         
-        .btn-delete-x {
-            color: #fa5252 !important;
-            border-color: #ffc9c9 !important;
-            background: #fff5f5 !important;
-            font-weight: bold;
-        }
-        .btn-delete-x:hover {
-            background: #ffe3e3 !important;
-            border-color: #fa5252 !important;
+        .list-row-title {
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .live-timer { font-family: monospace; font-size: 11px; color: var(--text-main); }
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 500 !important; 
+            border-radius: 4px;
+            border: 1px solid rgba(15, 23, 42, 0.15);
+            background-color: var(--color-white);
+            color: var(--color-dark);
+            cursor: pointer;
+        }
+        .btn-sm:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+        }
+        .btn-sm-primary {
+            background-color: var(--color-blue);
+            color: var(--color-white);
+            border-color: var(--color-blue);
+        }
 
-        /* 遮罩图层 */
-        .fridge-door, .microwave-screen {
+        .btn-delete-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            background-color: var(--color-white);
+            color: rgba(15, 23, 42, 0.4);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 400 !important;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .btn-delete-circle:hover {
+            background-color: #ef4444;
+            color: var(--color-white);
+            border-color: #ef4444;
+            transform: scale(1.1);
+        }
+
+        /* ==================== 7. 通用弹窗与提示 ==================== */
+        #vercel-toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px; 
+            pointer-events: none;
+        }
+        .vercel-toast {
+            background-color: #000000; 
+            color: #ffffff; 
+            padding: 12px 20px;
+            border-radius: 6px; 
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            min-width: 240px;
+            max-width: 380px;
+            pointer-events: auto;
+            animation: vercelToastIn 0.25s cubic-bezier(0.215, 0.610, 0.355, 1) forwards;
+            transition: all 0.2s ease;
+        }
+        @keyframes vercelToastIn {
+            from { transform: translateY(16px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .vercel-toast.fade-out { transform: translateY(-8px); opacity: 0; }
+
+        .fridge-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center;
-            align-items: center; z-index: 15; text-align: center;
-            padding: 15px; box-sizing: border-box;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-            background: rgba(255, 255, 255, 0.96); color: var(--text-main);
+            background-color: rgba(255, 255, 255, 0.98);
+            z-index: 40;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            text-align: center;
         }
-        .fridge-door.active { opacity: 1; pointer-events: auto; }
-        .microwave-screen.active { opacity: 1; pointer-events: auto; border: 2px solid var(--text-main); }
-
-        .anchor-memo-box {
-            background: #f8f9fa;
-            border: 1px solid #ced4da;
-            padding: 10px; border-radius: 4px; max-width: 90%; margin-top: 12px;
-            color: var(--text-main); font-size: 13px;
-        }
-
-        /* 弹窗核心样式 */
-        .modal-overlay {
-            position: fixed;
-            top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.4); display: none;
-            justify-content: center; align-items: center; z-index: 100;
-            padding: 15px; box-sizing: border-box;
-        }
-        .modal { background: white; padding: 20px; border-radius: 6px; width: 100%; max-width: 360px; border: 1px solid var(--fridge-border); box-sizing: border-box;}
-        .modal h3 { margin-top: 0; font-weight: 500; font-size: 16px; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 8px;}
-        .form-group { margin-bottom: 15px;}
-        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-main);}
-        .form-group input[type="text"] { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;}
-        .form-group input[type="range"] { width: 100%; cursor: pointer; accent-color: #495057;}
+        .fridge-overlay.active { display: flex; }
         
-        .alex-text-desc {
-            background: #f8f9fa;
-            border-left: 2px solid #6c757d;
-            padding: 8px; border-radius: 3px; font-size: 12px;
-            color: var(--text-main); margin-top: 4px; min-height: 16px;
+        .overlay-memo {
+            background-color: var(--color-light);
+            padding: 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            max-width: 80%;
+            margin-top: 16px;
+            text-align: left;
+            border: 1px solid rgba(15, 23, 42, 0.05);
         }
 
-        /* 底端传输控制面板自适应 */
-        .bottom-sync-controls {
-            margin-top: 35px;
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column; /* 手机端默认：上下堆叠垂直排列 */
-            gap: 10px;
-            width: 100%;
-            max-width: 600px;
-            box-sizing: border-box;
+        .modal-mask {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(15, 23, 42, 0.4);
+            z-index: 100;
+            display: none;
+            align-items: center;
             justify-content: center;
         }
+        .modal-box {
+            background-color: var(--color-white);
+            padding: 24px; 
+            border-radius: 8px;
+            width: 100%;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px; 
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+        }
+        .form-item { display: flex; flex-direction: column; gap: 8px; }
+        .form-item label { font-size: 12px; font-weight: 500; }
+        .form-item input[type="text"], .form-item input[type="datetime-local"], .form-item textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid rgba(15, 23, 42, 0.15);
+            background-color: var(--color-light);
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--color-dark);
+            outline: none;
+        }
+        .form-item input[type="range"] { accent-color: var(--color-blue); cursor: pointer; }
 
-        /* 电脑端与平板端适配 */
-        @media (min-width: 800px) {
-            body { padding: 20px; }
-            h1 { font-size: 24px; }
-            .controls { flex-direction: row; max-width: none; justify-content: center; }
-            .btn { width: auto; }
-            .debug-label { width: auto; }
-            .workspace { flex-direction: row; gap: 30px; }
-            .fridge { height: 680px; }
-            .fridge-handle { height: 140px; top: 140px; }
-            .text-list-container { width: 420px; height: 885px; padding: 20px; }
-            .task-item { padding: 12px; }
-            .task-name-text { font-size: 14px; white-space: normal; overflow: visible; }
-            
-            /* 电脑端：底端控制面板变为横向并排 */
-            .bottom-sync-controls { flex-direction: row; gap: 15px; }
+        .energy-score-feedback {
+            background-color: var(--color-light);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            border-left: 3px solid #475569;
+            margin-top: 4px;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
 
-    <h1>🧊 任务冰箱</h1>
-    <div class="sub-title">让工作任务像食物一样方便存储、保鲜与消化</div>
-    
-    <div class="controls">
-        <button class="btn" style="white-space: nowrap; width: auto; min-width: 240px; font-weight: 500;" onclick="openAddTaskModal()">+ 放入新食物（创建任务）</button>
-        <label class="debug-label">
-            <input type="checkbox" id="testMode" checked> 💡 开启加速调试模式（1小时压缩为5秒）
-        </label>
-    </div>
+    <div id="vercel-toast-container"></div>
 
-    <div class="workspace">
-        <div class="left-column">
-            <div class="fridge-container">
-                <div class="fridge" id="fridge">
-                    <div class="fridge-door" id="fridgeDoor">
-                        <h3 style="font-size:16px; margin-bottom:5px;">静心准备中</h3>
-                        <p style="max-width:90%; font-size:12px; color:var(--text-muted);">闭合外界干扰，调顺呼吸，准备好后进入专注状态...</p>
-                        <div style="font-size: 36px; font-weight: 300; margin-top:10px;" id="meditationCountdown">30s</div>
-                    </div>
+    <header>
+        <div>
+            <h1>任务厨房</h1>
+            <div class="sub-title">干大活如烹小鲜</div>
+        </div>
+        <div class="controls-right">
+            <label class="debug-label">
+                <input type="checkbox" id="chk-test-mode" checked>
+                <span>开启加速调试模式（1小时压缩为5秒）</span>
+            </label>
+            <button class="btn btn-secondary" onclick="openSyncModal()">同步与备份</button>
+            <button class="btn" onclick="openAddTaskModal()">放入新食材</button>
+        </div>
+    </header>
 
-                    <div class="microwave-screen" id="microwaveScreen">
-                        <h3 style="font-size:16px; margin-bottom:5px;">正在重温接轨思维进度...</h3>
-                        <p style="font-size:11px; color:var(--text-muted);">正在无缝同步上次的断点，请看提示：</p>
-                        <div class="anchor-memo-box">
-                            📍 <b>断点留存：</b><span id="anchorDisplay">加载中...</span>
-                        </div>
-                        <div style="font-size: 32px; font-weight: 300; margin-top:10px;" id="reheatCountdown">5s</div>
-                    </div>
-
-                    <div class="fridge-layer" data-layer="1" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">一层: 顶层速冻 [优先极高]</span>
-                    </div>
-                    <div class="fridge-layer" data-layer="2" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">二层: 上层冷藏 [核心推进]</span>
-                    </div>
-                    <div class="fridge-layer" data-layer="3" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">三层: 下层冷藏 [缓步处理]</span>
-                    </div>
-                    <div class="fridge-layer" data-layer="4" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)">
-                        <span class="layer-badge">四层: 底层保鲜 [低能挂机]</span>
-                    </div>
-                    <div class="fridge-layer" data-layer="5" ondragover="allowDrop(event)" ondragleave="dragLeave(event)" ondrop="drop(event)" style="background-color: #f1f3f5; border-top: 3px dashed #ced4da;">
-                        <span class="layer-badge" style="color: #495057; background: rgba(233,236,239,0.95);">❄️ 底层冷冻室 [延期/未来任务]</span>
-                    </div>
+    <main class="main-workspace">
+        
+        <div class="left-panel">
+            <div class="fridge-shell" id="fridge-box">
+                
+                <div class="fridge-overlay" id="cover-meditation">
+                    <h3>静心准备中</h3>
+                    <p class="sub-title" style="max-width:300px;">切断外界干扰。深呼吸，启动深度专注状态...</p>
+                    <div style="font-size: 28px; margin: 16px 0; font-weight: 700;" id="txt-meditation-clock">30s</div>
+                    <button class="btn" onclick="abortCountdown('meditation')">跳过倒计时</button>
                 </div>
-                <div class="fridge-handle"></div>
+
+                <div class="fridge-overlay" id="cover-reheat">
+                    <h3>正在重温</h3>
+                    <p class="sub-title">这是打包留存的断点：</p>
+                    <div class="overlay-memo">
+                        <b>断点：</b><span id="txt-anchor-display">无</span>
+                    </div>
+                    <div style="font-size: 28px; margin: 16px 0; font-weight: 700;" id="txt-reheat-clock">5s</div>
+                    <button class="btn" onclick="abortCountdown('reheat')">直接复热</button>
+                </div>
+
+                <div class="fridge-layer" data-layer="1" ondragover="evtAllowDrop(event)" ondragleave="evtDragLeave(event)" ondrop="evtDropLayer(event)">
+                    <span class="layer-badge">一层: 顶层冰鲜 [优先级高]</span>
+                </div>
+                <div class="fridge-layer" data-layer="2" ondragover="evtAllowDrop(event)" ondragleave="evtDragLeave(event)" ondrop="evtDropLayer(event)">
+                    <span class="layer-badge">二层: 上层冷藏 [核心推进]</span>
+                </div>
+                <div class="fridge-layer" data-layer="3" ondragover="evtAllowDrop(event)" ondragleave="evtDragLeave(event)" ondrop="evtDropLayer(event)">
+                    <span class="layer-badge">三层: 下层冷藏 [缓步处理]</span>
+                </div>
+                <div class="fridge-layer" data-layer="4" ondragover="evtAllowDrop(event)" ondragleave="evtDragLeave(event)" ondrop="evtDropLayer(event)">
+                    <span class="layer-badge">四层: 底层保鲜 [低能挂机]</span>
+                </div>
+                <div class="fridge-layer" data-layer="5" ondragover="evtAllowDrop(event)" ondragleave="evtDragLeave(event)" ondrop="evtDropLayer(event)">
+                    <span class="layer-badge">五层: 深度冷冻 [定时解冻]</span>
+                </div>
             </div>
 
-            <div class="empty-plates-container">
-                <h4>🍽️ 今日已饱食空盘区</h4>
-                <div class="plates-shelf" id="platesShelf">
-                    <span style="color:#adb5bd; font-size:13px;" id="emptyPlatePlaceholder">暂无空盘，快去完成一项任务吧！</span>
-                </div>
-            </div>
-
-            <div class="trash-container" id="trashZone" ondragover="allowDropTrash(event)" ondragleave="dragLeaveTrash(event)" ondrop="dropTrash(event)">
-                <span class="trash-icon">🗑️</span> 把不需要的食物拖到这里销毁（彻底删除任务）
+            <div class="eaten-zone">
+                <h4>今日已出锅</h4>
+                <div class="plates-shelf" id="box-plates-shelf"></div>
             </div>
         </div>
 
-        <div class="text-list-container">
-            <h3>📋 任务文字清单 <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">(已同步冰箱空间排序)</span></h3>
-            <ul class="task-list" id="taskList"></ul>
+        <div class="right-panel">
+            <h3>任务清单</h3>
+            <ul class="task-list-ul" id="box-task-list"></ul>
+            
+            <div class="trash-bin" id="box-trash" ondragover="evtAllowDropTrash(event)" ondragleave="evtDragLeaveTrash(event)" ondrop="evtDropTrash(event)">
+                把不需要的食物拖到这里销毁
+            </div>
         </div>
-    </div>
+    </main>
 
-    <div class="bottom-sync-controls">
-        <button class="btn" style="background-color: #2b6cb0; border-color: #2b6cb0; font-size: 13px; white-space: nowrap;" onclick="exportSyncData()">📤 复制当前数据文本 (电脑端)</button>
-        <button class="btn" style="background-color: #2f855a; border-color: #2f855a; font-size: 13px; white-space: nowrap;" onclick="importSyncData()">📥 导入同步数据文本 (手机端)</button>
-    </div>
-
-    <div class="modal-overlay" id="taskModal">
-        <div class="modal">
-            <h3>🍎 拟定新的食物任务</h3>
-            <div class="form-group" style="margin-top:10px;">
-                <label>任务事项名称</label>
-                <input type="text" id="taskName" placeholder="具体、清晰的单步行动...">
+    <div class="modal-mask" id="md-add">
+        <div class="modal-box">
+            <h3>拟定新食物任务</h3>
+            <div class="form-item">
+                <label>任务事项描述</label>
+                <input type="text" id="in-name" placeholder="具体、可执行的下一步行动...">
             </div>
-            <div class="form-group">
-                <label>重要性评估 (-5 到 5分)</label>
-                <input type="range" id="paramImportance" min="-5" max="5" value="0" oninput="updateRangeLabel(this)">
-                <div class="range-value" style="text-align:right; font-size:11px; color:var(--text-muted);">当前: <span>0</span>分</div>
+            <div class="form-item">
+                <label>重要性评估</label>
+                <input type="range" id="in-importance" min="-5" max="5" value="0" oninput="document.getElementById('lbl-imp').innerText=this.value">
+                <div style="text-align:right; font-size:11px; opacity:0.6;">评分: <span id="lbl-imp">0</span></div>
             </div>
-            <div class="form-group">
-                <label>紧迫需求度 (-5 到 5分)</label>
-                <input type="range" id="paramUrgency" min="-5" max="5" value="0" oninput="updateRangeLabel(this)">
-                <div class="range-value" style="text-align:right; font-size:11px; color:var(--text-muted);">当前: <span>0</span>分</div>
+            <div class="form-item">
+                <label>紧急度评估</label>
+                <input type="range" id="in-urgency" min="-5" max="5" value="0" oninput="document.getElementById('lbl-urg').innerText=this.value">
+                <div style="text-align:right; font-size:11px; opacity:0.6;">评分: <span id="lbl-urg">0</span></div>
             </div>
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="isFrozenTask" onchange="toggleModalDateInput(this)" style="width: auto; margin: 0;"> ❄️ 放入冷冻室（延迟执行）
+            <div class="form-item">
+                <label style="flex-direction:row; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="in-is-frozen" onchange="document.getElementById('wrapper-date').style.display=this.checked?'flex':'none'">
+                    <span>直接放入底层冷冻室</span>
                 </label>
-                <div id="modalFreezeDateContainer" style="display:none; margin-top: 8px;">
-                    <label>选择未来解冻启动日期</label>
-                    <input type="date" id="modalFreezeDateInput" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;">
+                <div id="wrapper-date" class="form-item" style="display:none; margin-top:4px;">
+                    <label>设定解冻时间</label>
+                    <input type="datetime-local" id="in-freeze-date">
                 </div>
             </div>
-            <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:10px;">
-                <button class="btn" style="background-color:#fff; color:var(--text-main); border-color:#ced4da; width:auto;" onclick="closeModal('taskModal')">取消</button>
-                <button class="btn" style="width:auto;" onclick="submitTask()">确认放入</button>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+                <button class="btn btn-secondary" onclick="closeModal('add')">取消</button>
+                <button class="btn" onclick="actionSubmitTask()">放入冰箱</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="freezeModal">
-        <div class="modal">
-            <h3>❄️ 打包冷冻（延后执行）</h3>
-            <p style="font-size: 13px; color: var(--text-main);">记录当前进度，并选择重新解冻的日期：</p>
-            <div class="form-group">
-                <label>你刚停留在哪里？待会回来第一步看什么？</label>
-                <input type="text" id="freezeAnchorInput" placeholder="例如：资料收集了一半，过几天再看..." autofocus>
+    <div class="modal-mask" id="md-pause">
+        <div class="modal-box">
+            <h3>打包暂存</h3>
+            <p class="sub-title">请写下当前断点，供之后复热：</p>
+            <div class="form-item">
+                <input type="text" id="in-pause-anchor" placeholder="例：完成了排版，下次开始核对数据...">
             </div>
-            <div class="form-group">
-                <label>选择解冻启动日期（当天凌晨0点自动恢复）</label>
-                <input type="date" id="freezeDateInput" style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box;">
-            </div>
-            <div class="modal-actions" style="display:flex; justify-content:flex-end; gap:10px;">
-                <button class="btn" style="background-color:#fff; color:var(--text-main); border-color:#ced4da; width:auto;" onclick="closeModal('freezeModal')">取消</button>
-                <button class="btn" style="width:auto;" onclick="submitFreeze()">确认冷冻</button>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn btn-secondary" onclick="closeModal('pause')">取消</button>
+                <button class="btn" onclick="actionSubmitPause()">打包</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="anchorModal">
-        <div class="modal">
-            <h3>🥡 打包暂存</h3>
-            <p style="font-size: 13px; color: var(--text-main);">记录当前进度，花几秒写下一句断点描述：</p>
-            <div class="form-group">
-                <label>你刚停留在哪里？待会回来第一步看什么？</label>
-                <input type="text" id="anchorInput" placeholder="例如：刚查到第3页，待会复制表格..." autofocus>
+    <div class="modal-mask" id="md-freeze-box">
+        <div class="modal-box">
+            <h3>打包送入冷冻室</h3>
+            <div class="form-item">
+                <label>断点提示</label>
+                <input type="text" id="in-freeze-anchor" placeholder="留下一句话协助解冻...">
             </div>
-            <div class="modal-actions" style="display:flex; justify-content:flex-end;">
-                <button class="btn" style="width:auto;" onclick="submitAnchor()">锁死断点并暂停</button>
+            <div class="form-item">
+                <label>设定解冻出库时间</label>
+                <input type="datetime-local" id="in-freeze-layer5-date">
             </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="emotionModal">
-        <div class="modal">
-            <h3>🧠 状态与能量定时盘点</h3>
-            <p style="font-size: 11px; color: var(--text-muted);">（后台持续计时，请依据直觉选择）</p>
-            <div class="form-group">
-                <label>1. 行动能量状态</label>
-                <input type="range" id="moodEnergy" min="1" max="10" value="5" oninput="onEnergySliderChange(this)">
-                <div class="alex-text-desc" id="energyDesc">🔋 绿色续航</div>
-            </div>
-            <div class="form-group">
-                <label>2. 当前工作舒适度</label>
-                <input type="range" id="moodHappiness" min="1" max="10" value="5" oninput="onHappinessSliderChange(this)">
-                <div class="alex-text-desc" id="happinessDesc">⛅ 无功无过</div>
-            </div>
-            <div class="modal-actions" style="display:flex; justify-content:flex-end;">
-                <button class="btn" style="width:auto;" onclick="submitEmotion()">提交复盘</button>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn btn-secondary" onclick="closeModal('freeze-box'); renderEngine();">取消</button>
+                <button class="btn" onclick="actionSubmitFreezeLayer5()">打包冷冻</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="deepMeditationModal">
-        <div class="modal" style="text-align: center;">
-            <h3>🧘‍♀️ 状态调适建议</h3>
-            <p id="meditationReason" style="font-size: 13px; font-weight: bold; color: #212529;"></p>
-            <p style="font-size: 13px; color: var(--text-muted);">系统检测到您的能效状态处于极值区间。建议暂时放下工作，进行 5分钟 短休调适。</p>
-            <button class="btn" style="width:auto; margin:0 auto;" onclick="closeModal('deepMeditationModal')">收到</button>
-        </div>
-    </div>
+    <div class="modal-mask" id="md-energy">
+        <div class="modal-box">
+            <h3 style="font-size: 14px;">开启火候检查</h3>
+            <div style="font-size:11px; color:rgba(15,23,42,0.4); text-align:left;">烹饪持续中，请客观评价当前火候：</div>
+            
+            <div class="form-item" style="margin-top:8px;">
+                <label>1. 能量状态 (续航)</label>
+                <input type="range" id="range-energy-val" min="1" max="5" value="3" oninput="handleEnergySliderChange(1, this.value)">
+                <div class="energy-score-feedback" id="txt-energy-feedback-1" style="border-left-color: #22c55e;">稳定续航</div>
+            </div>
 
-    <div class="modal-overlay" id="spoilModal">
-        <div class="modal" style="text-align: center;">
-            <h3>⚠️ 提示：任务执行已超2小时</h3>
-            <p style="font-size:13px; color:var(--text-main);">此项任务已持续加热执行超过2小时。</p>
-            <p style="font-size:14px; font-weight:bold; color: var(--btn-bg);">需要缓缓吗？</p>
-            <div style="display:flex; flex-direction:column; gap:8px; margin-top:15px;">
-                <button class="btn" style="font-size:13px;" onclick="handleSpoilAction('split')">🥡 打包暂停：切分成更小的步骤</button>
-                <button class="btn" style="background:#ffffff; color:var(--text-main); border-color:#ced4da; font-size:13px;" onclick="handleSpoilAction('keep')">继续推进：目前状态正顺畅</button>
+            <div class="form-item" style="margin-top:8px;">
+                <label>2. 工作舒适度 (心流)</label>
+                <input type="range" id="range-comfort-val" min="1" max="5" value="3" oninput="handleEnergySliderChange(2, this.value)">
+                <div class="energy-score-feedback" id="txt-energy-feedback-2" style="border-left-color: #eab308;">平静舒服</div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                <button class="btn" style="background-color: #475569; border-color: #475569;" onclick="actionSubmitEnergyReview()">提交检查</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="timeoutModal">
-        <div class="modal" style="text-align: center;">
-            <h3 id="timeoutTitle">⏰ 冰箱内务整理提示</h3>
-            <p id="timeoutContent" style="font-size:13px; color:var(--text-main); padding: 10px 0; line-height: 1.4; text-align: left;"></p>
-            <button class="btn" style="width:auto; margin:0 auto;" onclick="closeModal('timeoutModal')">明确，去处理</button>
+    <div class="modal-mask" id="md-sync">
+        <div class="modal-box" style="max-width: 440px;">
+            <h3>跨端高安全数据同步</h3>
+            <p class="sub-title">数据已转译：</p>
+            <div class="form-item">
+                <textarea id="txt-sync-json" rows="8" style="font-family: monospace !important; font-size:11px; word-break: break-all; resize: none;"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button class="btn btn-secondary" onclick="closeModal('sync')">关闭</button>
+                <button class="btn btn-secondary" onclick="actionCopySyncJson()">复制数据</button>
+                <button class="btn" onclick="actionImportSyncJson()">解密同步</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-mask" id="md-alert">
+        <div class="modal-box" style="text-align:center;">
+            <h3 id="txt-alert-title">警告</h3>
+            <p class="sub-title" id="txt-alert-desc" style="text-align:left; line-height:1.4;"></p>
+            <div id="wrapper-alert-actions" style="display:flex; flex-direction:column; gap:8px; margin-top:4px;"></div>
         </div>
     </div>
 
     <script>
-        const cleanImages = [
-            '菜心.png', '番茄.png', '鮭鱼(三文鱼).png', '胡萝卜.png', '花菜.png', 
-            '鸡蛋.png', '蘑菇.png', '牛排.png', '牛油果.png', '排骨.png', 
-            '培根.png', '青菜.png', '豌豆.png', '虾仁.png', '鲜玉米.png'
-        ];
-  
-        let tasks = [];
-        let timerInterval = null;
-        let currentTargetTaskId = null; 
+        const CONST_FOOD_IMGS = ['菜心.png', '番茄.png', '鮭鱼(三文鱼).png', '胡萝卜.png', '花菜.png', '鸡蛋.png', '蘑菇.png', '牛排.png', '牛油果.png', '排骨.png', '培根.png', '青菜.png', '豌豆.png', '虾仁.png', '鲜玉米.png'];
+        let globalTasks = [];
+        let activeTaskId = null;
+        let titleFlashInterval = null;
 
-        const energyMap = { 1: "🟥🔋 严重亏电", 2: "🟥🔋 严重亏电", 3: "🟥🔋 严重亏电", 4: "🔋 绿色续航", 5: "🔋 绿色续航", 6: "🔋 绿色续航", 7: "🔋 绿色续航", 8: "⚡ 引擎过热", 9: "⚡ 引擎过热", 10: "⚡ 引擎过热" };
-        const happinessMap = { 1: "🌧️ 阻力较大", 2: "🌧️ 阻力较大", 3: "🌧️ 阻力较大", 4: "⛅ 无功无过", 5: "⛅ 无功无过", 6: "⛅ 无功无过", 7: "⛅ 无功无过", 8: "☀️ 阳光普照", 9: "☀️ 阳光普照", 10: "☀️ 阳光普照" };
+        const MAP_ENERGY_TEXTS = { 1: "严重透支", 2: "有点麻木", 3: "稳定续航", 4: "精力充沛", 5: "巅峰亢奋" };
+        const MAP_COMFORT_TEXTS = {1: "焦躁不安", 2: "略有不适", 3: "平静舒服", 4: "渐入佳境", 5: "完美心流"};
 
-        function onEnergySliderChange(el) { document.getElementById('energyDesc').innerText = energyMap[el.value]; }
-        function onHappinessSliderChange(el) { document.getElementById('happinessDesc').innerText = happinessMap[el.value]; }
-        function updateRangeLabel(el) { el.nextElementSibling.querySelector('span').innerText = el.value; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        
-        function saveTasks() { localStorage.setItem('fridge_tasks', JSON.stringify(tasks)); }
-        function loadTasks() {
-            const stored = localStorage.getItem('fridge_tasks');
-            if (stored) { tasks = JSON.parse(stored); }
+        window.onload = function() {
+            const cache = localStorage.getItem('fridge_tasks_v5');
+            if (cache) { try { globalTasks = JSON.parse(cache); } catch(e) { globalTasks = []; } }
+            setupDragAndDrop();
+            sortAndReorderLayout();
+            renderEngine();
+            startGlobalClockLoop();
+
+            window.addEventListener('click', stopTitleFlash);
+            window.addEventListener('focus', stopTitleFlash);
+        };
+
+        function saveState() {
+            localStorage.setItem('fridge_tasks_v5', JSON.stringify(globalTasks));
         }
 
-        // ==================== 【跨端数据传输同步逻辑】 ====================
-        function exportSyncData() {
-            if (!tasks || tasks.length === 0) {
-                alert("🧊 当前冰箱内没有任何任务数据，无需导出！");
-                return;
-            }
-            try {
-                const jsonStr = JSON.stringify(tasks);
-                const encodedData = btoa(encodeURIComponent(jsonStr));
-                
-                navigator.clipboard.writeText(encodedData).then(() => {
-                    alert("📋【第一步成功】当前冰箱数据已成功压缩并复制到剪贴板！\n\n👉【第二步】：请打开电脑 Edge 右侧栏的「Drop」(随手传) 功能，把刚刚复制的内容粘贴发送过去。\n👉【第三步】：在手机端 Edge 的 Drop 中就能同步看到，全选复制它，再回到手机网页点击「导入」即可！");
-                }).catch(err => {
-                    prompt("自动复制受限，请手动全选并复制下方框内的加密文本：", encodedData);
-                });
-            } catch (e) {
-                alert("❌ 导出失败：" + e.message);
-            }
+        function showToast(text) {
+            const container = document.getElementById('vercel-toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'vercel-toast';
+            toast.innerText = text;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => { toast.remove(); }, 200);
+            }, 2800);
         }
 
-        function importSyncData() {
-            const encodedData = prompt("📥 请粘贴您从电脑端 Edge Drop 中发送并复制过来的加密数据文本：");
-            if (!encodedData) return;
-            
-            try {
-                const decodedStr = decodeURIComponent(atob(encodedData.trim()));
-                const importedTasks = JSON.parse(decodedStr);
-                
-                if (Array.isArray(importedTasks)) {
-                    if (confirm(`🔍 解析成功！检测到共 ${importedTasks.length} 项冰箱任务。\n\n⚠️ 警告：导入操作将全面替换并覆盖当前手机上的旧数据！确定要同步吗？`)) {
-                        tasks = importedTasks;
-                        saveTasks(); 
-                        render();    
-                        alert("✨【同步成功】手机端冰箱已同步为与电脑端完全一致的页面与进度！");
-                    }
-                } else {
-                    alert("❌ 导入失败：解析后的数据格式不匹配，请确保复制了完整的文本。");
-                }
-            } catch (e) {
-                alert("❌ 导入失败：文本读取错误，请检查是否在 Drop 传输或复制中漏掉了字符。");
-            }
-        }
-
-        function getTodayDateString() {
-            const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        }
-
-        // ==================== 【通知及音频群】 ====================
-        function requestNotificationPermission() {
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission();
-            }
-        }
-
-        let flashIntervalId = null;
-        function sendSystemNotification(title, content) {
-            playAlertSound();
-            if (document.hidden) {
-                if (flashIntervalId) clearInterval(flashIntervalId);
-                const originalTitle = "任务冰箱";
-                let toggle = false;
-                flashIntervalId = setInterval(() => {
-                    document.title = toggle ? originalTitle : `【⏰ ${title}】`;
-                    toggle = !toggle;
-                }, 800);
-                const clearFlash = () => {
-                    clearInterval(flashIntervalId);
-                    document.title = originalTitle;
-                    window.removeEventListener('focus', clearFlash);
-                };
-                window.addEventListener('focus', clearFlash);
-            }
-
-            if ("Notification" in window && Notification.permission === "granted") {
-                try {
-                    new Notification(title, {
-                        body: content,
-                        icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">🧊</text></svg>'
-                    });
-                } catch (e) { console.log(e); }
-            }
-        }
-
-        function playAlertSound() {
-            try {
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (!AudioContext) return;
-                const audioCtx = new AudioContext();
-                const triggerBeep = (delay) => {
-                    const oscillator = audioCtx.createOscillator();
-                    const gainNode = audioCtx.createGain();
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime + delay);
-                    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime + delay);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + 0.15);
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    oscillator.start(audioCtx.currentTime + delay);
-                    oscillator.stop(audioCtx.currentTime + delay + 0.15);
-                };
-                triggerBeep(0);
-                triggerBeep(0.2);
-            } catch (e) { console.log(e); }
-        }
-
-        function handleMidnightAndThawing() {
-            const todayStr = getTodayDateString();
-            const lastClearDate = localStorage.getItem('fridge_last_clear_date');
-            let needsRender = false; 
-            
-            if (lastClearDate && lastClearDate !== todayStr) {
-                tasks = tasks.filter(t => t.status !== 'finished');
-                localStorage.setItem('fridge_last_clear_date', todayStr);
-                needsRender = true; 
-            } else if (!lastClearDate) {
-                localStorage.setItem('fridge_last_clear_date', todayStr);
-            }
-
-            let thawedAny = false;
-            tasks.forEach(t => {
-                if (t.layer === 5 && t.targetDate) {
-                    if (t.targetDate <= todayStr) {
-                        let targetLayer = 4;
-                        if (t.score >= 5) targetLayer = 1;
-                        else if (t.score >= 0) targetLayer = 2;
-                        else if (t.score >= -5) targetLayer = 3;
-                        
-                        t.layer = targetLayer;
-                        t.targetDate = null;
-                        t.status = 'pending';
-                        thawedAny = true;
-                    }
-                }
-            });
-            if (thawedAny) {
-                reorderTasksByFridgeLayout();
-                needsRender = true; 
-            }
-
-            if (needsRender) {
-                saveTasks();
-                render();
-            }
-        }
-
-        function toggleModalDateInput(cb) {
-            document.getElementById('modalFreezeDateContainer').style.display = cb.checked ? 'block' : 'none';
-            if (cb.checked) {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                document.getElementById('modalFreezeDateInput').value = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-            }
-        }
-        
-        function openAddTaskModal() {
-            document.getElementById('taskName').value = '';
-            document.getElementById('paramImportance').value = 0;
-            document.getElementById('paramUrgency').value = 0;
-            document.getElementById('isFrozenTask').checked = false;
-            document.getElementById('modalFreezeDateContainer').style.display = 'none';
-            document.getElementById('modalFreezeDateInput').value = '';
-            document.querySelectorAll('#taskModal .range-value span').forEach(s => s.innerText = '0');
-            document.getElementById('taskModal').style.display = 'flex';
-        }
-
-        function submitTask() {
-            const name = document.getElementById('taskName').value.trim();
-            if (!name) { alert('请输入任务名称！'); return; }
-
-            const imp = parseInt(document.getElementById('paramImportance').value);
-            const urg = parseInt(document.getElementById('paramUrgency').value);
-            const score = imp + urg;
-
-            const isFrozen = document.getElementById('isFrozenTask').checked;
-            const freezeDate = document.getElementById('modalFreezeDateInput').value;
-            if (isFrozen && !freezeDate) { alert('请选择解冻日期！'); return; }
-
-            let layer = 4;
-            if (score >= 5) layer = 1;
-            else if (score >= 0) layer = 2;
-            else if (score >= -5) layer = 3;
-
-            if (isFrozen) { layer = 5; }
-
-            const randomImg = cleanImages[Math.floor(Math.random() * cleanImages.length)];
-            tasks.push({
-                id: Date.now().toString(),
-                name: name,
-                score: score,
-                layer: layer,
-                image: randomImg,
-                status: isFrozen ? 'paused' : 'pending', 
-                createTime: Date.now(),      
-                startTime: null,             
-                pauseTime: null,             
-                accumulatedSeconds: 0,       
-                accumulatedPausedSeconds: 0, 
-                seconds: 0,        
-                pausedSeconds: 0,   
-                pendingSeconds: 0,  
-                emotionChecked: false,
-                spoilAlerted: false,
-                pauseTimeoutAlerted: false,   
-                pendingTimeoutAlerted: false, 
-                anchorText: isFrozen ? '设定在未来启用的冷冻任务' : '',
-                targetDate: isFrozen ? freezeDate : null
-            });
-            closeModal('taskModal');
-            reorderTasksByFridgeLayout();
-            startGlobalTimer(); 
-            render();
-        }
-
-        function allowDrop(ev) { 
-            ev.preventDefault();
-            let target = ev.target;
-            while (target && !target.classList.contains('fridge-layer')) { target = target.parentElement; }
-            if(target) target.classList.add('drag-over');
-        }
-
-        function dragLeave(ev) {
-            let target = ev.target;
-            while (target && !target.classList.contains('fridge-layer')) { target = target.parentElement; }
-            if(target) target.classList.remove('drag-over');
-        }
-
-        function drag(ev, id) { ev.dataTransfer.setData("text/plain", id); }
-
-        function allowDropTrash(ev) {
-            ev.preventDefault();
-            document.getElementById('trashZone').classList.add('drag-over');
-        }
-        function dragLeaveTrash(ev) {
-            document.getElementById('trashZone').classList.remove('drag-over');
-        }
-        function dropTrash(ev) {
-            ev.preventDefault();
-            document.getElementById('trashZone').classList.remove('drag-over');
-            const id = ev.dataTransfer.getData("text/plain");
-            triggerDirectDelete(id);
-        }
-
-        function triggerDirectDelete(id) {
-            const task = tasks.find(t => t.id === id);
-            if (!task) return;
-            if (confirm(`确定要彻底删除（销毁）任务「${task.name}」吗？`)) {
-                tasks = tasks.filter(t => t.id !== id);
-                saveTasks();
-                render();
-            }
-        }
-
-        function drop(ev) {
-            ev.preventDefault();
-            const id = ev.dataTransfer.getData("text/plain");
-            const task = tasks.find(t => t.id === id);
-            if (!task) return;
-
-            let targetLayerEl = ev.target;
-            while (targetLayerEl && !targetLayerEl.classList.contains('fridge-layer')) { targetLayerEl = targetLayerEl.parentElement; }
-            if (!targetLayerEl) return;
-            targetLayerEl.classList.remove('drag-over');
-            
-            const targetLayerNum = parseInt(targetLayerEl.getAttribute('data-layer'));
-            
-            if (targetLayerNum === 5) {
-                currentTargetTaskId = id;
-                openFreezeModal();
-                return;
-            }
-
-            if (task.layer === 5) {
-                task.targetDate = null;
-                if (task.status === 'running') task.status = 'paused';
-            }
-
-            const currentLayerItems = [...targetLayerEl.querySelectorAll('.food-container')].filter(el => el.getAttribute('data-id') !== id);
-            let insertIndex = currentLayerItems.length;
-            for (let i = 0; i < currentLayerItems.length; i++) {
-                const box = currentLayerItems[i].getBoundingClientRect();
-                if (ev.clientX < box.left + box.width / 2) {
-                    insertIndex = i;
-                    break;
-                }
-            }
-
-            tasks = tasks.filter(t => t.id !== id);
-            task.layer = targetLayerNum;
-
-            let targetLayerTasks = tasks.filter(t => t.layer === targetLayerNum && t.status !== 'finished');
-            targetLayerTasks.splice(insertIndex, 0, task);
-            let finalTasks = [];
-            for (let l = 1; l <= 5; l++) {
-                if (l === targetLayerNum) {
-                    finalTasks.push(...targetLayerTasks);
-                } else {
-                    finalTasks.push(...tasks.filter(t => t.layer === l && t.status !== 'finished'));
-                }
-            }
-            finalTasks.push(...tasks.filter(t => t.status === 'finished'));
-            tasks = finalTasks;
-
-            reorderTasksByFridgeLayout();
-            render();
-        }
-
-        function openFreezeModal() {
-            document.getElementById('freezeAnchorInput').value = '';
-            const tom = new Date(); tom.setDate(tom.getDate() + 1);
-            document.getElementById('freezeDateInput').value = `${tom.getFullYear()}-${String(tom.getMonth() + 1).padStart(2, '0')}-${String(tom.getDate()).padStart(2, '0')}`;
-            document.getElementById('freezeModal').style.display = 'flex';
-            setTimeout(() => document.getElementById('freezeAnchorInput').focus(), 150);
-        }
-
-        function submitFreeze() {
-            const text = document.getElementById('freezeAnchorInput').value.trim();
-            const dateVal = document.getElementById('freezeDateInput').value;
-            if (!dateVal) { alert('请选择重新解冻的日期！'); return; }
-
-            const task = tasks.find(t => t.id === currentTargetTaskId);
-            if (task) {
-                const now = Date.now();
-                if (task.status === 'running') {
-                    task.accumulatedSeconds += Math.floor((now - task.startTime) / 1000);
-                    task.seconds = task.accumulatedSeconds;
-                }
-                task.status = 'paused';
-                task.pauseTime = now;
-                task.layer = 5; 
-                task.anchorText = text || "未留存具体描述。";
-                task.targetDate = dateVal;
-                closeModal('freezeModal');
-                reorderTasksByFridgeLayout();
-                render();
-            }
-        }
-
-        function reorderTasksByFridgeLayout() {
-            let ordered = [];
-            for(let l = 1; l <= 4; l++) {
-                ordered.push(...tasks.filter(t => t.layer === l && t.status !== 'finished'));
-            }
-            
-            let layer5Tasks = tasks.filter(t => t.layer === 5 && t.status !== 'finished');
-            layer5Tasks.sort((a, b) => {
-                if (!a.targetDate) return 1;
-                if (!b.targetDate) return -1;
-                return a.targetDate.localeCompare(b.targetDate);
-            });
-            ordered.push(...layer5Tasks);
-            
-            ordered.push(...tasks.filter(t => t.status === 'finished'));
-            tasks = ordered;
-            saveTasks();
-        }
-
-        function initiateTaskLaunch(id) {
-            const task = tasks.find(t => t.id === id);
-            if (!task) return;
-
-            if (task.status === 'paused') {
-                currentTargetTaskId = id;
-                const microwave = document.getElementById('microwaveScreen');
-                document.getElementById('anchorDisplay').innerText = task.anchorText || "无断点记录";
-                microwave.classList.add('active');
-
-                let timeLeft = 5;
-                document.getElementById('reheatCountdown').innerText = `${timeLeft}s`;
-                const reheatInterval = setInterval(() => {
-                    timeLeft--;
-                    document.getElementById('reheatCountdown').innerText = `${timeLeft}s`;
-                    if (timeLeft <= 0) {
-                        clearInterval(reheatInterval);
-                        microwave.classList.remove('active');
-                        executeTaskActivation(id);
-                    }
-                }, 1000);
-            } else {
-                const door = document.getElementById('fridgeDoor');
-                const countdownEl = document.getElementById('meditationCountdown');
-                door.classList.add('active');
-
-                let timeLeft = 30;
-                countdownEl.innerText = `${timeLeft}s`;
-                const medInterval = setInterval(() => {
-                    timeLeft--;
-                    countdownEl.innerText = `${timeLeft}s`;
-                    if (timeLeft <= 0) {
-                        clearInterval(medInterval);
-                        door.classList.remove('active');
-                        executeTaskActivation(id);
-                    }
-                }, 1000);
-            }
-        }
-
-        function executeTaskActivation(id) {
-            const task = tasks.find(t => t.id === id);
-            if (task) {
-                const now = Date.now();
-                if (task.status === 'paused') {
-                    task.accumulatedPausedSeconds += Math.floor((now - task.pauseTime) / 1000);
-                }
-                task.status = 'running';
-                task.startTime = now; 
-                saveTasks();
-                render();
-            }
-            startGlobalTimer();
-        }
-
-        function startGlobalTimer() {
-            if (timerInterval) return;
-            timerInterval = setInterval(() => {
-                updateTimerCalculations();
+        function startTitleFlash(msg) {
+            showToast(`通知提示: ${msg}`);
+            if (titleFlashInterval) clearInterval(titleFlashInterval);
+            let isToggle = false;
+            titleFlashInterval = setInterval(() => {
+                document.title = isToggle ? `任务有动静!` : `任务厨房`;
+                isToggle = !isToggle;
             }, 1000);
         }
 
-        function updateTimerCalculations() {
-            handleMidnightAndThawing();
-            let hasActiveTasks = false;
-            const now = Date.now();
-            const isTestMode = document.getElementById('testMode').checked;
-            tasks.forEach(t => {
-                if (t.status === 'finished') return;
-                if (t.layer === 5) return; 
-
-                hasActiveTasks = true;
-                if (t.status === 'running') {
-                    t.seconds = t.accumulatedSeconds + Math.floor((now - t.startTime) / 1000);
-                    if (t.seconds >= (isTestMode ? 5 : 3600) && !t.emotionChecked) {
-                        t.emotionChecked = true;
-                        popContextualEmotionModal();
-                        sendSystemNotification("🧠 状态与能量定时盘点", "系统已经为您加热了1小时任务，快来做个直觉评估吧！");
-                    }
-                    if (t.seconds >= (isTestMode ? 15 : 7200) && !t.spoilAlerted) {
-                        t.spoilAlerted = true;
-                        currentTargetTaskId = t.id;
-                        document.getElementById('spoilModal').style.display = 'flex';
-                        sendSystemNotification("⚠️ 任务加热已超2小时", `任务「${t.name}」连续执行太久容易脑过热，建议打包拆分休息一下。`);
-                    }
-                } 
-                else if (t.status === 'paused') {
-                    t.pausedSeconds = t.accumulatedPausedSeconds + Math.floor((now - t.pauseTime) / 1000);
-                    if (t.pausedSeconds >= (isTestMode ? 10 : 7200) && !t.pauseTimeoutAlerted) {
-                        t.pauseTimeoutAlerted = true;
-                        triggerTimeoutPopup(`⚠️ 任务搁置超时`, `任务「${t.name}」已打包暂停超过 2 小时未继续。需要缓缓或者重新切分子步骤吗？`);
-                    }
-                } 
-                else if (t.status === 'pending') {
-                    t.pendingSeconds = Math.floor((now - t.createTime) / 1000);
-                    if (t.pendingSeconds >= (isTestMode ? 35 : 25200) && !t.pendingTimeoutAlerted) {
-                        t.pendingTimeoutAlerted = true;
-                        triggerTimeoutPopup(`⏳ 任务久放未动`, `任务「${t.name}」已加入清单超过 7 小时还未开始烹饪。建议重新调配货架层级或直接开火。`);
-                    }
-                }
-            });
-            updateLiveTimers();
-            if (!hasActiveTasks && timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        function stopTitleFlash() {
+            if (titleFlashInterval) { clearInterval(titleFlashInterval); titleFlashInterval = null; }
+            document.title = "任务厨房";
         }
 
-        function triggerTimeoutPopup(title, content) {
-            document.getElementById('timeoutTitle').innerText = title;
-            document.getElementById('timeoutContent').innerText = content;
-            document.getElementById('timeoutModal').style.display = 'flex';
-            sendSystemNotification(title, content);
+        // 获取格式化后的本地高精度时间默认值 (当前时间 + 偏移毫秒数)
+        function getLocalDateTimeString(offsetMs = 0) {
+            const d = new Date(Date.now() + offsetMs);
+            const pad = n => n.toString().padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
 
-        function updateLiveTimers() {
-            tasks.forEach(t => {
-                if(t.status === 'finished' || t.layer === 5) return;
-                const hrs = Math.floor(t.seconds / 3600).toString().padStart(2, '0');
-                const mins = Math.floor((t.seconds % 3600) / 60).toString().padStart(2, '0');
-                const secs = (t.seconds % 60).toString().padStart(2, '0');
-                const timeStr = `${hrs}:${mins}:${secs}`;
-
-                const txt = document.getElementById(`time-text-${t.id}`);
-                if (txt) txt.innerText = t.status === 'paused' ? '已暂停' : timeStr;
-                const frg = document.getElementById(`time-fridge-${t.id}`);
-                if (frg) frg.innerText = t.status === 'paused' ? '⏸️ ' + timeStr : timeStr;
-            });
+        function openAddTaskModal() {
+            // 默认解冻时间设为明天此时
+            document.getElementById('in-freeze-date').value = getLocalDateTimeString(24 * 3600 * 1000);
+            openModal('add');
         }
 
-        function requestTaskPause(id) {
-            currentTargetTaskId = id;
-            document.getElementById('anchorInput').value = '';
-            document.getElementById('anchorModal').style.display = 'flex';
-            setTimeout(() => document.getElementById('anchorInput').focus(), 150);
-        }
-
-        function submitAnchor() {
-            const text = document.getElementById('anchorInput').value.trim();
-            const task = tasks.find(t => t.id === currentTargetTaskId);
-            if (task) {
-                const now = Date.now();
-                task.accumulatedSeconds += Math.floor((now - task.startTime) / 1000);
-                task.seconds = task.accumulatedSeconds;
-                task.status = 'paused';
-                task.pauseTime = now; 
-                task.anchorText = text || "未留存具体描述。";
-                closeModal('anchorModal');
-                saveTasks();
-                render();
-            }
-        }
-
-        function handleSpoilAction(type) {
-            closeModal('spoilModal');
-            if (type === 'split') { requestTaskPause(currentTargetTaskId); }
-        }
-
-        function popContextualEmotionModal() {
-            document.getElementById('moodEnergy').value = 5;
-            document.getElementById('moodHappiness').value = 5;
-            document.getElementById('emotionModal').style.display = 'flex';
-        }
-
-        function submitEmotion() {
-            const energy = parseInt(document.getElementById('moodEnergy').value);
-            const happiness = parseInt(document.getElementById('moodHappiness').value);
-            closeModal('emotionModal');
-            if ((energy <= 3 && happiness <= 3) || (energy >= 8 && happiness >= 8)) {
-                const reason = (energy <= 3) ? "【提示】：当前能量处于低位红格。" : "【提示】：当前节奏可能过紧。";
-                document.getElementById('meditationReason').innerText = reason;
-                document.getElementById('deepMeditationModal').style.display = 'flex';
-                sendSystemNotification("🧘‍♀️ 状态调适温馨建议", "监测到你可能累了或崩得太紧，建议切回来闭眼短休5分钟调适！");
-            }
-        }
-
-        function finaliseTaskEaten(id) {
-            const task = tasks.find(t => t.id === id);
-            if (task) {
-                if (task.status === 'running') {
-                    task.accumulatedSeconds += Math.floor((Date.now() - task.startTime) / 1000);
-                    task.seconds = task.accumulatedSeconds;
-                }
-                task.status = 'finished';
-                reorderTasksByFridgeLayout();
-                render();
-            }
-        }
-
-        function render() {
+        // ==================== 渲染核心 ====================
+        function renderEngine() {
             document.querySelectorAll('.fridge-layer').forEach(layer => {
                 const badge = layer.querySelector('.layer-badge');
                 layer.innerHTML = '';
-                layer.appendChild(badge);
+                if(badge) layer.appendChild(badge);
             });
-            const taskListEl = document.getElementById('taskList');
-            taskListEl.innerHTML = '';
+            document.getElementById('box-plates-shelf').innerHTML = '';
+            document.getElementById('box-task-list').innerHTML = '';
 
-            const shelf = document.getElementById('platesShelf');
-            shelf.innerHTML = '';
-            const finishedTasks = tasks.filter(t => t.status === 'finished');
-            if (finishedTasks.length === 0) {
-                shelf.innerHTML = `<span style="color:#adb5bd; font-size:13px;" id="emptyPlatePlaceholder">暂无空盘，快去完成一项任务吧！</span>`;
-            } else {
-                finishedTasks.forEach(task => {
+            let hasFinished = false;
+
+            globalTasks.forEach(task => {
+                if (task.status === 'finished') {
+                    hasFinished = true;
                     const plate = document.createElement('div');
-                    plate.className = 'chewed-food';
-                    plate.innerText = '🍽️';
-            
-                    const hrs = Math.floor(task.seconds / 3600);
-                    const mins = Math.floor((task.seconds % 3600) / 60);
-                    plate.setAttribute('title', `已完成: ${task.name}\n耗时: ${hrs}小时${mins}分钟`);
-                    
-                    const miniFood = document.createElement('img');
-                    miniFood.src = task.image;
-                    miniFood.style.cssText = "width:14px; height:14px; object-fit:contain; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:white; border-radius:50%; padding:1px; border:1px solid #dee2e6;";
-                    
-                    plate.appendChild(miniFood);
-                    shelf.appendChild(plate);
-                });
-            }
-
-            tasks.forEach(task => {
-                if (task.status === 'finished') return;
-
-                const foodContainer = document.createElement('div');
-                foodContainer.className = 'food-container';
-                foodContainer.setAttribute('data-status', task.status);
-                foodContainer.setAttribute('data-id', task.id); 
-
-                if (task.layer === 5) {
-                    foodContainer.setAttribute('title', `食物任务：${task.name}\n🧊 计划解冻日期：${task.targetDate || '未定'}`);
+                    plate.className = "plate-container";
+                    plate.title = `任务: ${task.name}\n总烹饪时间: ${formatElapsedTime(task.seconds)}`;
+                    plate.innerHTML = `
+                        <div class="plate-check">✓</div>
+                        <img src="${task.image}" style="width:18px; height:18px; object-fit:contain;">
+                    `;
+                    document.getElementById('box-plates-shelf').appendChild(plate);
+                    return;
                 }
 
-                const foodEl = document.createElement('img');
-                foodEl.className = 'food-icon';
-                foodEl.src = task.image;
-                foodEl.setAttribute('draggable', 'true');
-                foodEl.addEventListener('dragstart', (e) => drag(e, task.id));
-                foodContainer.appendChild(foodEl);
-
-                if ((task.status === 'running' || task.status === 'paused') && task.layer !== 5) {
-                    const timerTag = document.createElement('div');
-                    timerTag.className = 'food-timer-tag';
-                    timerTag.id = `time-fridge-${task.id}`;
-                    const hrs = Math.floor(task.seconds / 3600).toString().padStart(2, '0');
-                    const mins = Math.floor((task.seconds % 3600) / 60).toString().padStart(2, '0');
-                    const secs = (task.seconds % 60).toString().padStart(2, '0');
-                    timerTag.innerText = `${hrs}:${mins}:${secs}`;
-                    if (task.status === 'paused') {
-                        timerTag.style.background = '#f8f9fa';
-                        timerTag.innerText = '⏸️ ' + timerTag.innerText;
+                const layerEl = document.querySelector(`.fridge-layer[data-layer="${task.layer}"]`);
+                if (layerEl) {
+                    const wrap = document.createElement('div');
+                    wrap.className = "food-item-container";
+                    wrap.setAttribute('draggable', 'true');
+                    wrap.setAttribute('data-id', task.id);
+                    wrap.setAttribute('data-status', task.status);
+                    
+                    let labelStr = '';
+                    if (task.layer === 5 && task.targetDateTime) {
+                        // 清晰显示具体解冻的具体日期与时分
+                        const displayTime = task.targetDateTime.substring(5).replace('T', ' ');
+                        labelStr = `<div class="food-countdown-tag" style="background: rgba(15,23,42,0.7);">${displayTime}开箱</div>`;
+                    } else if (task.status === 'running' || task.status === 'paused') {
+                        labelStr = `<div class="food-countdown-tag">${formatElapsedTime(task.seconds)}</div>`;
                     }
-                    foodContainer.appendChild(timerTag);
-                } else if (task.layer === 5 && task.targetDate) {
-                    const dateTag = document.createElement('div');
-                    dateTag.className = 'food-timer-tag';
-                    dateTag.style.background = '#e6f7ff';
-                    dateTag.style.borderColor = '#91d5ff';
-                    dateTag.innerText = '❄️' + task.targetDate.substring(5);
-                    foodContainer.appendChild(dateTag);
-                }
-                
-                const targetLayer = document.querySelector(`.fridge-layer[data-layer="${task.layer}"]`);
-                if (targetLayer) targetLayer.appendChild(foodContainer);
 
-                if (task.layer === 5) return;
+                    wrap.innerHTML = `
+                        <img src="${task.image}" class="food-img" title="${task.name}">
+                        ${labelStr}
+                    `;
 
-                const itemEl = document.createElement('li');
-                itemEl.className = 'task-item';
-                itemEl.setAttribute('data-status', task.status);
-                let actionHtml = '';
-                if (task.status === 'pending') {
-                    actionHtml = `
-                        <div style="display:flex; gap:4px; align-items:center;">
-                            <button class="btn-sm btn-start" onclick="initiateTaskLaunch('${task.id}')">开火烹饪</button>
-                            <button class="btn-sm btn-delete-x" onclick="triggerDirectDelete('${task.id}')" title="删除任务">×</button>
-                        </div>
-                    `;
-                } else if (task.status === 'running') {
-                    actionHtml = `
-                        <div class="task-actions">
-                            <span class="live-timer" id="time-text-${task.id}">00:00:00</span>
-                            <div style="display:flex; gap:4px; align-items:center;">
-                                <button class="btn-sm btn-pause" onclick="requestTaskPause('${task.id}')">🥡 打包</button>
-                                <button class="btn-sm btn-finish" onclick="finaliseTaskEaten('${task.id}')">完成</button>
-                                <button class="btn-sm btn-delete-x" onclick="triggerDirectDelete('${task.id}')" title="删除任务">×</button>
-                            </div>
-                        </div>
-                    `;
-                } else if (task.status === 'paused') {
-                    actionHtml = `
-                        <div class="task-actions">
-                            <span class="live-timer" style="color:var(--text-muted);" id="time-text-${task.id}">已暂停</span>
-                            <div style="display:flex; gap:4px; align-items:center;">
-                                <button class="btn-sm btn-reheat" onclick="initiateTaskLaunch('${task.id}')">♨️ 恢复</button>
-                                <button class="btn-sm btn-delete-x" onclick="triggerDirectDelete('${task.id}')" title="删除任务">×</button>
-                            </div>
-                        </div>
-                    `;
+                    wrap.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', task.id);
+                        wrap.style.opacity = '0.4';
+                    });
+                    wrap.addEventListener('dragend', () => { wrap.style.opacity = '1'; });
+
+                    layerEl.appendChild(wrap);
                 }
 
-                itemEl.innerHTML = `
-                    <div class="task-info">
-                        <img src="${task.image}" style="width:24px; height:24px; object-fit:contain; flex-shrink:0; border-radius: 4px;">
-                        <div>
-                            <div class="task-name-text">${task.name}</div>
-                            <div style="font-size:10px; color:var(--text-muted);">层级:第${task.layer}层</div>
+                // 非冷冻层（1-4层）同步展示在右侧文字清单中
+                if (task.layer !== 5) {
+                    const li = document.createElement('li');
+                    li.className = "list-row";
+                    li.setAttribute('data-status', task.status);
+
+                    let actionSection = '';
+                    if (task.status === 'running') {
+                        actionSection = `
+                            <span style="font-size:11px; margin-right:4px; font-weight:700; color:var(--color-blue);">${formatElapsedTime(task.seconds)}</span>
+                            <button class="btn-sm" onclick="triggerPauseFlow('${task.id}')">打包</button>
+                            <button class="btn-sm btn-sm-primary" onclick="actionDirectFinish('${task.id}')">出锅</button>
+                        `;
+                    } else if (task.status === 'pending') {
+                        actionSection = `<button class="btn-sm btn-sm-primary" onclick="triggerStartFlow('${task.id}')">开火烹饪</button>`;
+                    } else if (task.status === 'paused') {
+                        actionSection = `<button class="btn-sm" onclick="triggerStartFlow('${task.id}')">复热</button>`;
+                    }
+
+                    li.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+                            <img src="${task.image}" style="width:16px; height:16px; object-fit:contain; flex-shrink:0;">
+                            <div style="min-width:0; flex:1;">
+                                <div class="list-row-title">${task.name}</div>
+                            </div>
                         </div>
-                    </div>
-                    <div>${actionHtml}</div>
-                `;
-                taskListEl.appendChild(itemEl);
+                        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                            ${actionSection}
+                            <button class="btn-delete-circle" onclick="actionDirectDelete('${task.id}')" title="彻底删除">&times;</button>
+                        </div>
+                    `;
+                    document.getElementById('box-task-list').appendChild(li);
+                }
             });
-            updateLiveTimers();
+
+            if (!hasFinished) {
+                document.getElementById('box-plates-shelf').innerHTML = `<span style="color:var(--color-dark); opacity:0.3; font-size:11px;">暂无出餐</span>`;
+            }
         }
 
-        window.onload = function() {
-            loadTasks();
-            handleMidnightAndThawing();
-            reorderTasksByFridgeLayout();
-            render();
-            startGlobalTimer();
-            requestNotificationPermission();
-        };
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                handleMidnightAndThawing();
-                render();
+        // ==================== 拖拽控制 ====================
+        function setupDragAndDrop() {
+            document.querySelectorAll('.fridge-layer').forEach(layer => {
+                layer.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    layer.classList.add('drag-over');
+                });
+                layer.addEventListener('dragleave', () => { layer.classList.remove('drag-over'); });
+                layer.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    layer.classList.remove('drag-over');
+                    const draggedId = e.dataTransfer.getData('text/plain');
+                    const destLayer = parseInt(layer.getAttribute('data-layer'));
+                    
+                    const targetContainer = e.target.closest('.food-item-container');
+                    const targetId = targetContainer ? targetContainer.getAttribute('data-id') : null;
+                    
+                    actionMoveLayer(draggedId, destLayer, targetId);
+                });
+            });
+        }
+
+        function evtAllowDrop(e) { e.preventDefault(); }
+        function evtDragLeave(e) { e.target.classList.remove('drag-over'); }
+
+        function evtAllowDropTrash(e) { e.preventDefault(); document.getElementById('box-trash').classList.add('drag-over'); }
+        function evtDragLeaveTrash(e) { document.getElementById('box-trash').classList.remove('drag-over'); }
+        function evtDropTrash(e) {
+            e.preventDefault();
+            document.getElementById('box-trash').classList.remove('drag-over');
+            const id = e.dataTransfer.getData('text/plain');
+            actionDirectDelete(id);
+        }
+
+        function actionMoveLayer(draggedId, destLayer, targetId) {
+            const taskIndex = globalTasks.findIndex(t => t.id === draggedId);
+            if (taskIndex === -1) return;
+            const task = globalTasks[taskIndex];
+
+            // 手动拖入第五层冷冻室，触发具体出库时分设定
+            if (destLayer === 5) {
+                activeTaskId = draggedId;
+                document.getElementById('in-freeze-anchor').value = task.anchorText || '';
+                // 默认出库时间设为1小时后
+                document.getElementById('in-freeze-layer5-date').value = getLocalDateTimeString(3600 * 1000);
+                openModal('freeze-box');
+                return;
             }
-        });
+
+            const now = Date.now();
+            let updatedSec = task.seconds;
+            if (task.status === 'running') {
+                updatedSec = (task.accumulatedSeconds || 0) + Math.floor((now - task.startTime) / 1000);
+            }
+
+            task.layer = destLayer;
+            task.targetDateTime = null;
+            task.seconds = updatedSec;
+            task.accumulatedSeconds = updatedSec;
+            task.lastActiveTime = now; 
+            task.sevenHourAlerted = false; 
+            
+            globalTasks.splice(taskIndex, 1);
+
+            if (targetId) {
+                const targetIndex = globalTasks.findIndex(t => t.id === targetId);
+                if (targetIndex !== -1) {
+                    globalTasks.splice(targetIndex, 0, task);
+                } else {
+                    globalTasks.push(task);
+                }
+            } else {
+                globalTasks.push(task);
+            }
+
+            showToast("成功调度食物并刷新次序");
+            sortAndReorderLayout(); saveState(); renderEngine();
+        }
+
+        // ==================== 状态切换与重温控制 ====================
+        function triggerStartFlow(id) {
+            activeTaskId = id;
+            const task = globalTasks.find(t => t.id === id);
+            if (!task) return;
+
+            if (task.status === 'paused') {
+                document.getElementById('txt-anchor-display').innerText = task.anchorText || "未留存断点";
+                executeOverlayCountdown('reheat', 5);
+            } else {
+                executeOverlayCountdown('meditation', 30);
+            }
+        }
+
+        function executeOverlayCountdown(type, secs) {
+            const overlay = document.getElementById(`cover-${type}`);
+            const clockEl = document.getElementById(`txt-${type}-clock`);
+            overlay.classList.add('active');
+            clockEl.innerText = `${secs}s`;
+
+            if(window.countdownTimerInstance) clearInterval(window.countdownTimerInstance);
+            
+            window.countdownTimerInstance = setInterval(() => {
+                secs--;
+                clockEl.innerText = `${secs}s`;
+                if (secs <= 0) {
+                    clearInterval(window.countdownTimerInstance);
+                    overlay.classList.remove('active');
+                    actionRealCommitStart();
+                }
+            }, 1000);
+        }
+
+        function abortCountdown(type) {
+            if(window.countdownTimerInstance) clearInterval(window.countdownTimerInstance);
+            document.getElementById(`cover-${type}`).classList.remove('active');
+            actionRealCommitStart();
+        }
+
+        function actionRealCommitStart() {
+            const now = Date.now();
+            globalTasks = globalTasks.map(t => {
+                if (t.id === activeTaskId) {
+                    const addPaused = t.status === 'paused' ? (t.accumulatedPausedSeconds || 0) + Math.floor((now - t.pauseTime) / 1000) : t.accumulatedPausedSeconds;
+                    showToast(`正在烹饪: ${t.name}`);
+                    return { 
+                        ...t, 
+                        status: 'running', 
+                        startTime: now, 
+                        accumulatedPausedSeconds: addPaused,
+                        lastActiveTime: now,
+                        lastEnergyHour: 0,       
+                        lastFocusTwoHour: 0
+                    };
+                }
+                return t;
+            });
+            saveState(); renderEngine();
+        }
+
+        function triggerPauseFlow(id) {
+            activeTaskId = id;
+            document.getElementById('in-pause-anchor').value = '';
+            openModal('pause');
+        }
+
+        function actionSubmitPause() {
+            const anchor = document.getElementById('in-pause-anchor').value.trim();
+            const now = Date.now();
+            globalTasks = globalTasks.map(t => {
+                if (t.id === activeTaskId) {
+                    const runSecs = (t.accumulatedSeconds || 0) + Math.floor((now - t.startTime) / 1000);
+                    showToast(`已打包保鲜: ${t.name}`);
+                    return {
+                        ...t, status: 'paused', pauseTime: now, lastActiveTime: now, sevenHourAlerted: false,
+                        seconds: runSecs, accumulatedSeconds: runSecs,
+                        anchorText: anchor || "未写下断点记录。"
+                    };
+                }
+                return t;
+            });
+            closeModal('pause'); saveState(); renderEngine();
+        }
+
+        function actionSubmitFreezeLayer5() {
+            const dateTimeStr = document.getElementById('in-freeze-layer5-date').value;
+            if(!dateTimeStr) { alert("请指定解冻时间"); return; }
+            const anchor = document.getElementById('in-freeze-anchor').value.trim();
+            const now = Date.now();
+
+            globalTasks = globalTasks.map(t => {
+                if (t.id === activeTaskId) {
+                    showToast(`送入冷冻室，排程至 [${dateTimeStr.replace('T',' ')}] `);
+                    return { ...t, status: 'paused', layer: 5, srcBeforeFreeze: t.layer !== 5 ? t.layer : 2, pauseTime: now, lastActiveTime: now, anchorText: anchor || "无断点。", targetDateTime: dateTimeStr };
+                }
+                return t;
+            });
+            closeModal('freeze-box'); sortAndReorderLayout(); saveState(); renderEngine();
+        }
+
+        function actionDirectFinish(id) {
+            const now = Date.now();
+            globalTasks = globalTasks.map(t => {
+                if (t.id === id) {
+                    const runSecs = t.status === 'running' ? (t.accumulatedSeconds || 0) + Math.floor((now - t.startTime) / 1000) : t.seconds;
+                    showToast("搞定！出锅！");
+                    return { ...t, status: 'finished', seconds: runSecs, accumulatedSeconds: runSecs };
+                }
+                return t;
+            });
+            saveState(); renderEngine();
+        }
+
+        function actionDirectDelete(id) {
+            globalTasks = globalTasks.filter(t => t.id !== id);
+            showToast("食物已被清理");
+            saveState(); renderEngine();
+        }
+
+        // ==================== 评分调分交互控制 ====================
+        function handleEnergySliderChange(dimension, val) {
+            if (dimension === 1) {
+                document.getElementById('txt-energy-feedback-1').innerText = MAP_ENERGY_TEXTS[val];
+                const colors = ['#ef4444', '#f97316', '#22c55e', '#3b82f6', '#a855f7'];
+                document.getElementById('txt-energy-feedback-1').style.borderLeftColor = colors[val - 1];
+            } else {
+                document.getElementById('txt-energy-feedback-2').innerText = MAP_COMFORT_TEXTS[val];
+                const colors = ['#ef4444', '#f97316', '#eab308', '#06b6d4', '#ec4899'];
+                document.getElementById('txt-energy-feedback-2').style.borderLeftColor = colors[val - 1];
+            }
+        }
+
+        function actionSubmitEnergyReview() {
+            const eVal = document.getElementById('range-energy-val').value;
+            const cVal = document.getElementById('range-comfort-val').value;
+            closeModal('energy');
+            stopTitleFlash();
+            showToast(`当前续航: ${MAP_ENERGY_TEXTS[eVal]} | 心流: ${MAP_COMFORT_TEXTS[cVal]}`);
+        }
+
+        // ==================== 高精度监测时钟内核引擎 ====================
+        function startGlobalClockLoop() {
+            setInterval(() => {
+                const now = Date.now();
+                const isTest = document.getElementById('chk-test-mode').checked;
+                let triggerRefresh = false;
+
+                // 核心时钟缩放刻度
+                const hourSecs = isTest ? 5 : 3600;
+                const twoHourSecs = isTest ? 10 : 7200;
+                const sevenHourSecs = isTest ? 35 : 25200;
+
+                globalTasks = globalTasks.map(t => {
+                    if (t.status === 'finished') return t;
+
+                    // A. 运行中状态监控 (1小时自动复盘打分 + 2小时专注长鸣)
+                    if (t.status === 'running') {
+                        triggerRefresh = true;
+                        const sessionElapsed = Math.floor((now - t.startTime) / 1000);
+                        const totalSecs = (t.accumulatedSeconds || 0) + sessionElapsed;
+                        let updatedTask = { ...t, seconds: totalSecs };
+
+                        // 1. 每满 1 小时自动拉动打分询问
+                        const currentHourMark = Math.floor(sessionElapsed / hourSecs);
+                        if (currentHourMark > (t.lastEnergyHour || 0)) {
+                            updatedTask.lastEnergyHour = currentHourMark;
+                            activeTaskId = t.id;
+                            startTitleFlash(`任务「${t.name}」已经开火很久了，请检查火候`);
+                            
+                            document.getElementById('range-energy-val').value = 3;
+                            document.getElementById('range-comfort-val').value = 3;
+                            handleEnergySliderChange(1, 3);
+                            handleEnergySliderChange(2, 3);
+                            openModal('energy');
+                        }
+
+                        // 2. 每满 2 小时提醒一次专注时间很长
+                        const currentTwoHourMark = Math.floor(sessionElapsed / twoHourSecs);
+                        if (currentTwoHourMark > (t.lastFocusTwoHour || 0)) {
+                            updatedTask.lastFocusTwoHour = currentTwoHourMark;
+                            activeTaskId = t.id;
+                            startTitleFlash(`专注时间过长警报！`);
+                            popDecisionModal('spoil', `持续专注长鸣：任务「${t.name}」已经开火很久了。快糊啦，打包或者挪锅吧！`);
+                        }
+                        return updatedTask;
+                    }
+
+                    // B. 冷冻室秒级高精度定时自动解冻引擎
+                    if (t.layer === 5 && t.targetDateTime) {
+                        const thawTimestamp = new Date(t.targetDateTime).getTime();
+                        // 比对当前时间戳，到达设定时刻点立即强制出库解冻
+                        if (!isNaN(thawTimestamp) && now >= thawTimestamp) {
+                            triggerRefresh = true;
+                            startTitleFlash(`食物「${t.name}」冷冻期满，已解冻出库！`);
+                            setTimeout(() => {
+                                alert(` 解冻提示：\n任务「${t.name}」已达到解冻时间 [${t.targetDateTime.replace('T',' ')}]，现已解冻`);
+                            }, 10);
+                            
+                            return { 
+                                ...t, 
+                                layer: t.srcBeforeFreeze || 2, // 移回冻结前的层级（默认二层）
+                                targetDateTime: null, 
+                                status: 'pending', 
+                                lastActiveTime: now, 
+                                sevenHourAlerted: false 
+                            };
+                        }
+                    }
+
+                    // C. 挂机清单列表内任务监控 (7小时未开启冷置巡检)
+                    if ((t.status === 'pending' || t.status === 'paused') && t.layer !== 5) {
+                        const baseTime = t.lastActiveTime || t.createTime || t.pauseTime || now;
+                        const idleElapsed = Math.floor((now - baseTime) / 1000);
+
+                        if (idleElapsed >= sevenHourSecs && !t.sevenHourAlerted) {
+                            triggerRefresh = true;
+                            t.sevenHourAlerted = true; 
+                            
+                            setTimeout(() => {
+                                if (confirm(`温控深度巡检：\n任务清单中的「${t.name}」搁置了 7 个小时，已经搞定了吗？`)) {
+                                    t.status = 'finished';
+                                    showToast(`任务「${t.name}」已出锅`);
+                                    renderEngine();
+                                }
+                            }, 50);
+                        }
+                    }
+
+                    return t;
+                });
+
+                if (triggerRefresh) {
+                    sortAndReorderLayout();
+                    saveState();
+                    renderEngine();
+                }
+            }, 1000);
+        }
+
+        function sortAndReorderLayout() {
+            const layers = {1:[], 2:[], 3:[], 4:[], 5:[]};
+            globalTasks.forEach(t => {
+                if(layers[t.layer]) layers[t.layer].push(t);
+            });
+            globalTasks = [...layers[1], ...layers[2], ...layers[3], ...layers[4], ...layers[5]];
+        }
+
+        function actionSubmitTask() {
+            const name = document.getElementById('in-name').value.trim();
+            if(!name) { alert("事项描述必填"); return; }
+            const imp = parseInt(document.getElementById('in-importance').value);
+            const urg = parseInt(document.getElementById('in-urgency').value);
+            const isFrozen = document.getElementById('in-is-frozen').checked;
+            const freezeDateTime = document.getElementById('in-freeze-date').value;
+
+            if (isFrozen && !freezeDateTime) { alert("深度冷冻必须指定清晰的解冻时间！"); return; }
+
+            const score = imp + urg;
+            let targetLayer = 4;
+            if (score >= 5) targetLayer = 1;
+            else if (score >= 0) targetLayer = 2;
+            else if (score >= -5) targetLayer = 3;
+            if (isFrozen) targetLayer = 5;
+
+            const randomImg = CONST_FOOD_IMGS[Math.floor(Math.random() * CONST_FOOD_IMGS.length)];
+            const now = Date.now();
+
+            globalTasks.push({
+                id: now.toString(), name, score, layer: targetLayer, image: randomImg,
+                status: isFrozen ? 'paused' : 'pending',
+                srcBeforeFreeze: isFrozen ? 2 : targetLayer,
+                createTime: now, startTime: null, pauseTime: isFrozen ? now : null, lastActiveTime: now,
+                accumulatedSeconds: 0, accumulatedPausedSeconds: 0, seconds: 0,
+                anchorText: isFrozen ? '已送入冷冻室' : '',
+                targetDateTime: isFrozen ? freezeDateTime : null,
+                lastEnergyHour: 0,
+                lastFocusTwoHour: 0,
+                sevenHourAlerted: false
+            });
+
+            document.getElementById('in-name').value = '';
+            document.getElementById('in-is-frozen').checked = false;
+            document.getElementById('wrapper-date').style.display = 'none';
+            closeModal('add'); showToast("成功入库"); sortAndReorderLayout(); saveState(); renderEngine();
+        }
+
+        // ==================== 安全数据密文同步 ====================
+        function openSyncModal() {
+            try {
+                const rawJson = JSON.stringify(globalTasks);
+                const base64Str = btoa(encodeURIComponent(rawJson).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
+                document.getElementById('txt-sync-json').value = base64Str;
+            } catch (e) {
+                document.getElementById('txt-sync-json').value = JSON.stringify(globalTasks, null, 2);
+            }
+            openModal('sync');
+        }
+
+        function actionCopySyncJson() {
+            const textarea = document.getElementById('txt-sync-json');
+            textarea.select();
+            document.execCommand('copy');
+            showToast("同步密文已复制至剪贴板");
+        }
+
+        function actionImportSyncJson() {
+            const rawStr = document.getElementById('txt-sync-json').value.trim();
+            if(!rawStr) return;
+            try {
+                let parsedData = null;
+                if (rawStr.startsWith('[') || rawStr.startsWith('{')) {
+                    parsedData = JSON.parse(rawStr);
+                } else {
+                    const decodedStr = decodeURIComponent(atob(rawStr).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                    parsedData = JSON.parse(decodedStr);
+                }
+                
+                if(Array.isArray(parsedData)) {
+                    globalTasks = parsedData.map(t => ({
+                        ...t,
+                        lastActiveTime: t.lastActiveTime || Date.now(),
+                        sevenHourAlerted: t.sevenHourAlerted || false
+                    }));
+                    sortAndReorderLayout(); saveState(); renderEngine(); closeModal('sync');
+                    showToast("多端数据解密并同步覆盖成功");
+                } else {
+                    alert("错误：导入格式必须为合法的数组包。");
+                }
+            } catch(e) {
+                alert("解析失败，请检查数据！");
+            }
+        }
+
+        function popDecisionModal(type, text) {
+            const titleEl = document.getElementById('txt-alert-title');
+            const descEl = document.getElementById('txt-alert-desc');
+            const zone = document.getElementById('wrapper-alert-actions');
+            
+            descEl.innerText = text;
+            zone.innerHTML = '';
+
+            if (type === 'spoil') {
+                titleEl.innerText = "煮糊警报";
+                zone.innerHTML = `
+                    <button class="btn" style="width:100%;" onclick="closeModal('alert'); triggerPauseFlow('${activeTaskId}');">这就打包！</button>
+                    <button class="btn btn-secondary" style="width:100%;" onclick="closeModal('alert'); stopTitleFlash();">火候正好，继续慢炖</button>
+                `;
+            }
+
+            openModal('alert');
+        }
+
+        function openModal(id) { document.getElementById(`md-${id}`).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(`md-${id}`).style.display = 'none'; }
+        
+        function formatElapsedTime(s) {
+            const h = Math.floor(s / 3600).toString().padStart(2, '0');
+            const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+            const sec = (s % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${sec}`;
+        }
     </script>
 </body>
 </html>
