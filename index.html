@@ -80,7 +80,7 @@
         .btn:active { transform: scale(0.98); }
 
         .btn-secondary {
-            background-color: var(--color-white);
+            background-color: var(--white);
             color: var(--color-dark);
             border: 1px solid rgba(15, 23, 42, 0.15);
         }
@@ -104,16 +104,6 @@
             gap: 16px; 
             margin-top: 4px;
         }
-
-        .debug-label {
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            gap: 8px; 
-            cursor: pointer;
-            opacity: 0.8;
-        }
-        .debug-label input { accent-color: var(--color-blue); }
 
         /* ==================== 3. 大框架布局 ==================== */
         .main-workspace {
@@ -184,7 +174,6 @@
             background-color: rgba(0, 101, 255, 0.03) !important;
         }
 
-        /* 第五层冷冻室画面的冰蓝感高级质感 */
         .fridge-layer[data-layer="5"] {
             background: rgba(224, 242, 254, 0.6) !important;
             backdrop-filter: blur(8px);
@@ -229,7 +218,6 @@
             flex: 1;
         }
 
-        /* 右侧列表下方销毁区 */
         .trash-bin {
             height: 52px;
             border: 2px dashed rgba(15, 23, 42, 0.15);
@@ -507,6 +495,48 @@
             margin-top: 4px;
             font-weight: 500;
         }
+
+        /* ==================== 8. 移动端高精度响应式媒体查询 ==================== */
+        @media (max-width: 768px) {
+            body {
+                height: auto;
+                overflow-y: auto; /* 允许手机浏览器进行整页流畅纵向滚动 */
+            }
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .controls-right {
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 4px;
+            }
+            .main-workspace {
+                flex-direction: column; /* 左右分栏变成上下堆叠 */
+                height: auto;
+                flex: none;
+            }
+            .left-panel {
+                width: 100%;
+                flex: none;
+                height: auto;
+            }
+            .fridge-shell {
+                height: 380px; /* 移动端固定冰箱合理高度，防止被无限挤压 */
+                flex: none;
+            }
+            .right-panel {
+                width: 100%;
+                flex: none;
+                height: auto;
+                margin-top: 8px;
+            }
+            .task-list-ul {
+                max-height: 280px; /* 给右侧文字清单列表一个独立安全高度范围，防止拉得过长 */
+                overflow-y: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -519,10 +549,6 @@
             <div class="sub-title">干大活如烹小鲜</div>
         </div>
         <div class="controls-right">
-            <label class="debug-label">
-                <input type="checkbox" id="chk-test-mode" checked>
-                <span>开启加速调试模式（1小时压缩为5秒）</span>
-            </label>
             <button class="btn btn-secondary" onclick="openSyncModal()">同步与备份</button>
             <button class="btn" onclick="openAddTaskModal()">放入新食材</button>
         </div>
@@ -541,7 +567,7 @@
                 </div>
 
                 <div class="fridge-overlay" id="cover-reheat">
-                    <h3>正在重温</h3>
+                    <h3>正在复热</h3>
                     <p class="sub-title">这是打包留存的断点：</p>
                     <div class="overlay-memo">
                         <b>断点：</b><span id="txt-anchor-display">无</span>
@@ -639,7 +665,7 @@
                 <input type="text" id="in-freeze-anchor" placeholder="留下一句话协助解冻...">
             </div>
             <div class="form-item">
-                <label>设定解冻出库时间</label>
+                <label>设定解冻时间</label>
                 <input type="datetime-local" id="in-freeze-layer5-date">
             </div>
             <div style="display:flex; justify-content:flex-end; gap:8px;">
@@ -674,7 +700,7 @@
 
     <div class="modal-mask" id="md-sync">
         <div class="modal-box" style="max-width: 440px;">
-            <h3>跨端高安全数据同步</h3>
+            <h3>跨端数据同步</h3>
             <p class="sub-title">数据已转译：</p>
             <div class="form-item">
                 <textarea id="txt-sync-json" rows="8" style="font-family: monospace !important; font-size:11px; word-break: break-all; resize: none;"></textarea>
@@ -682,7 +708,7 @@
             <div style="display:flex; justify-content:flex-end; gap:8px;">
                 <button class="btn btn-secondary" onclick="closeModal('sync')">关闭</button>
                 <button class="btn btn-secondary" onclick="actionCopySyncJson()">复制数据</button>
-                <button class="btn" onclick="actionImportSyncJson()">解密同步</button>
+                <button class="btn" onclick="actionImportSyncJson()">解密载入</button>
             </div>
         </div>
     </div>
@@ -701,7 +727,7 @@
         let activeTaskId = null;
         let titleFlashInterval = null;
 
-        const MAP_ENERGY_TEXTS = { 1: "严重透支", 2: "有点麻木", 3: "稳定续航", 4: "精力充沛", 5: "巅峰亢奋" };
+        const MAP_ENERGY_TEXTS = { 1: "严重透支", 2: "有点麻木", 3: "稳定续航", 4: "精力充沛", 5: "巅峰亢奋"  };
         const MAP_COMFORT_TEXTS = {1: "焦躁不安", 2: "略有不适", 3: "平静舒服", 4: "渐入佳境", 5: "完美心流"};
 
         window.onload = function() {
@@ -748,7 +774,6 @@
             document.title = "任务厨房";
         }
 
-        // 获取格式化后的本地高精度时间默认值 (当前时间 + 偏移毫秒数)
         function getLocalDateTimeString(offsetMs = 0) {
             const d = new Date(Date.now() + offsetMs);
             const pad = n => n.toString().padStart(2, '0');
@@ -756,7 +781,6 @@
         }
 
         function openAddTaskModal() {
-            // 默认解冻时间设为明天此时
             document.getElementById('in-freeze-date').value = getLocalDateTimeString(24 * 3600 * 1000);
             openModal('add');
         }
@@ -797,7 +821,6 @@
                     
                     let labelStr = '';
                     if (task.layer === 5 && task.targetDateTime) {
-                        // 清晰显示具体解冻的具体日期与时分
                         const displayTime = task.targetDateTime.substring(5).replace('T', ' ');
                         labelStr = `<div class="food-countdown-tag" style="background: rgba(15,23,42,0.7);">${displayTime}解冻</div>`;
                     } else if (task.status === 'running' || task.status === 'paused') {
@@ -818,7 +841,6 @@
                     layerEl.appendChild(wrap);
                 }
 
-                // 非冷冻层（1-4层）同步展示在右侧文字清单中
                 if (task.layer !== 5) {
                     const li = document.createElement('li');
                     li.className = "list-row";
@@ -897,11 +919,9 @@
             if (taskIndex === -1) return;
             const task = globalTasks[taskIndex];
 
-            // 手动拖入第五层冷冻室，触发具体出库时分设定
             if (destLayer === 5) {
                 activeTaskId = draggedId;
                 document.getElementById('in-freeze-anchor').value = task.anchorText || '';
-                // 默认出库时间设为1小时后
                 document.getElementById('in-freeze-layer5-date').value = getLocalDateTimeString(3600 * 1000);
                 openModal('freeze-box');
                 return;
@@ -1029,8 +1049,8 @@
 
             globalTasks = globalTasks.map(t => {
                 if (t.id === activeTaskId) {
-                    showToast(`送入冷冻室，排程至 [${dateTimeStr.replace('T',' ')}] `);
-                    return { ...t, status: 'paused', layer: 5, srcBeforeFreeze: t.layer !== 5 ? t.layer : 2, pauseTime: now, lastActiveTime: now, anchorText: anchor || "无断点。", targetDateTime: dateTimeStr };
+                    showToast(`送入冷冻室，排程至 [${dateTimeStr.replace('T',' ')}] 解冻`);
+                    return { ...t, status: 'paused', layer: 5, srcBeforeFreeze: t.layer !== 5 ? t.layer : 2, pauseTime: now, lastActiveTime: now, anchorText: anchor || "无断点", targetDateTime: dateTimeStr };
                 }
                 return t;
             });
@@ -1077,17 +1097,16 @@
             showToast(`当前续航: ${MAP_ENERGY_TEXTS[eVal]} | 心流: ${MAP_COMFORT_TEXTS[cVal]}`);
         }
 
-        // ==================== 高精度监测时钟内核引擎 ====================
+        // ==================== 高精度标准时钟内核引擎 ====================
         function startGlobalClockLoop() {
             setInterval(() => {
                 const now = Date.now();
-                const isTest = document.getElementById('chk-test-mode').checked;
                 let triggerRefresh = false;
 
-                // 核心时钟缩放刻度
-                const hourSecs = isTest ? 5 : 3600;
-                const twoHourSecs = isTest ? 10 : 7200;
-                const sevenHourSecs = isTest ? 35 : 25200;
+                // 核心时钟标准现实刻度（单位：秒）
+                const hourSecs = 3600;       // 1小时自动复盘打分
+                const twoHourSecs = 7200;    // 2小时持续专注过度警报
+                const sevenHourSecs = 25200; // 7小时未开启冷置巡检
 
                 globalTasks = globalTasks.map(t => {
                     if (t.status === 'finished') return t;
@@ -1099,7 +1118,6 @@
                         const totalSecs = (t.accumulatedSeconds || 0) + sessionElapsed;
                         let updatedTask = { ...t, seconds: totalSecs };
 
-                        // 1. 每满 1 小时自动拉动打分询问
                         const currentHourMark = Math.floor(sessionElapsed / hourSecs);
                         if (currentHourMark > (t.lastEnergyHour || 0)) {
                             updatedTask.lastEnergyHour = currentHourMark;
@@ -1113,13 +1131,12 @@
                             openModal('energy');
                         }
 
-                        // 2. 每满 2 小时提醒一次专注时间很长
                         const currentTwoHourMark = Math.floor(sessionElapsed / twoHourSecs);
                         if (currentTwoHourMark > (t.lastFocusTwoHour || 0)) {
                             updatedTask.lastFocusTwoHour = currentTwoHourMark;
                             activeTaskId = t.id;
                             startTitleFlash(`专注时间过长警报！`);
-                            popDecisionModal('spoil', `持续专注长鸣：任务「${t.name}」已经开火很久了。快糊啦，打包或者挪锅吧！`);
+                            popDecisionModal('spoil', `任务「${t.name}」已经开火很久了。快糊啦，打包或者挪锅吧！`);
                         }
                         return updatedTask;
                     }
@@ -1127,17 +1144,16 @@
                     // B. 冷冻室秒级高精度定时自动解冻引擎
                     if (t.layer === 5 && t.targetDateTime) {
                         const thawTimestamp = new Date(t.targetDateTime).getTime();
-                        // 比对当前时间戳，到达设定时刻点立即强制出库解冻
                         if (!isNaN(thawTimestamp) && now >= thawTimestamp) {
                             triggerRefresh = true;
-                            startTitleFlash(`食物「${t.name}」冷冻期满，已解冻出库！`);
+                            startTitleFlash(`食物「${t.name}」冷冻期满，已解冻！`);
                             setTimeout(() => {
                                 alert(` 解冻提示：\n任务「${t.name}」已达到解冻时间 [${t.targetDateTime.replace('T',' ')}]，现已解冻`);
                             }, 10);
                             
                             return { 
                                 ...t, 
-                                layer: t.srcBeforeFreeze || 2, // 移回冻结前的层级（默认二层）
+                                layer: t.srcBeforeFreeze || 2, 
                                 targetDateTime: null, 
                                 status: 'pending', 
                                 lastActiveTime: now, 
@@ -1156,7 +1172,7 @@
                             t.sevenHourAlerted = true; 
                             
                             setTimeout(() => {
-                                if (confirm(`温控深度巡检：\n任务清单中的「${t.name}」搁置了 7 个小时，已经搞定了吗？`)) {
+                                if (confirm(`巡检：\n「${t.name}」搁置了 7 个小时，已经搞定了吗？`)) {
                                     t.status = 'finished';
                                     showToast(`任务「${t.name}」已出锅`);
                                     renderEngine();
@@ -1192,7 +1208,7 @@
             const isFrozen = document.getElementById('in-is-frozen').checked;
             const freezeDateTime = document.getElementById('in-freeze-date').value;
 
-            if (isFrozen && !freezeDateTime) { alert("深度冷冻必须指定清晰的解冻时间！"); return; }
+            if (isFrozen && !freezeDateTime) { alert("冷冻必须指定解冻时间"); return; }
 
             const score = imp + urg;
             let targetLayer = 4;
@@ -1210,7 +1226,7 @@
                 srcBeforeFreeze: isFrozen ? 2 : targetLayer,
                 createTime: now, startTime: null, pauseTime: isFrozen ? now : null, lastActiveTime: now,
                 accumulatedSeconds: 0, accumulatedPausedSeconds: 0, seconds: 0,
-                anchorText: isFrozen ? '已送入冷冻室' : '',
+                anchorText: isFrozen ? '已冷冻' : '',
                 targetDateTime: isFrozen ? freezeDateTime : null,
                 lastEnergyHour: 0,
                 lastFocusTwoHour: 0,
@@ -1279,7 +1295,7 @@
             zone.innerHTML = '';
 
             if (type === 'spoil') {
-                titleEl.innerText = "煮糊警报";
+                titleEl.innerText = "专注时间过长警报";
                 zone.innerHTML = `
                     <button class="btn" style="width:100%;" onclick="closeModal('alert'); triggerPauseFlow('${activeTaskId}');">这就打包！</button>
                     <button class="btn btn-secondary" style="width:100%;" onclick="closeModal('alert'); stopTitleFlash();">火候正好，继续慢炖</button>
