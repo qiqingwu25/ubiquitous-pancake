@@ -799,7 +799,7 @@
                     if (task.layer === 5 && task.targetDateTime) {
                         // 清晰显示具体解冻的具体日期与时分
                         const displayTime = task.targetDateTime.substring(5).replace('T', ' ');
-                        labelStr = `<div class="food-countdown-tag" style="background: rgba(15,23,42,0.7);">${displayTime}开箱</div>`;
+                        labelStr = `<div class="food-countdown-tag" style="background: rgba(15,23,42,0.7);">${displayTime}解冻</div>`;
                     } else if (task.status === 'running' || task.status === 'paused') {
                         labelStr = `<div class="food-countdown-tag">${formatElapsedTime(task.seconds)}</div>`;
                     }
